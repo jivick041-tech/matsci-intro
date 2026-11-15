@@ -1485,8 +1485,8 @@ const SAVE_URL="https://script.google.com/macros/s/AKfycbxdty7M2R94i6-U_0SKF-ca8
 /* 放在 Apps Script 時用 google.script.run；放在 GitHub Pages 等一般網站時，直接把紀錄傳到上面的 Apps Script 網址 */
 const SRV=(typeof google!=="undefined"&&google.script&&google.script.run)?google.script.run:(SAVE_URL&&/^https?:$/.test(location.protocol)?(()=>{
   const call=(fn)=>{const h={};const o={withSuccessHandler(f){h.s=f;return o},withFailureHandler(f){h.f=f;return o},
-    saveProgress(p){fetch(SAVE_URL,{method:"POST",mode:"no-cors",keepalive:true,headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)}).then(()=>h.s&&h.s(true),()=>h.f&&h.f())},
-    loadProgress(sid){fetch(SAVE_URL+"?action=load&sid="+encodeURIComponent(sid)).then(r=>r.ok?r.text():Promise.reject()).then(t=>h.s&&h.s(t),()=>h.f&&h.f())}};return o};
+    saveProgress(p){fetch(SAVE_URL,{method:"POST",mode:"no-cors",keepalive:true,credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)}).then(()=>h.s&&h.s(true),()=>h.f&&h.f())},
+    loadProgress(sid){fetch(SAVE_URL+"?action=load&sid="+encodeURIComponent(sid),{credentials:"omit"}).then(r=>r.ok?r.text():Promise.reject()).then(t=>h.s&&h.s(t),()=>h.f&&h.f())}};return o};
   return {withSuccessHandler(f){return call().withSuccessHandler(f)},withFailureHandler(f){return call().withFailureHandler(f)}};
 })():null);
 const TR={owner:false,dash:false,lastAct:Date.now(),dirty:false,saving:false,saved:0,err:false,loadedFor:"",timer:0};
@@ -1530,7 +1530,7 @@ function srvLoad(){
       if(json){try{mergeRemote(JSON.parse(json))}catch(e){}}
       TR.loadedFor=sid;TR.dirty=true;save();render(cur);srvSave();
     })
-    .withFailureHandler(()=>{TR.loadedFor=sid;TR.err=true;TR.dirty=true;updSubmit()})
+    .withFailureHandler(()=>{TR.loadedFor=sid;TR.dirty=true;updSubmit();srvSave()})
     .loadProgress(sid);
 }
 function mergeRemote(r){
