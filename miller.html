@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>米勒指數 3D 教具</title>
+<meta name="description" content="明志科技大學材料工程系 黃裕清老師｜米勒指數、晶向與米勒–布拉菲指數的 3D 互動教具與證明">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: 3D viewer (left) + control panel (right), stacked on phones; proof tab is a single reading column */
+:root{
+  --bg:#f3f5f6; --paper:#ffffff; --ink:#18232b; --muted:#5b6b75; --line:#d5dde2;
+  --accent:#b4531f; --accent-soft:#f6e4d9; --steel:#2f5d78; --steel-soft:#e1ecf2;
+  --ok:#2c7a4b; --ok-soft:#e1f2e7; --bad:#b3261e; --bad-soft:#fbe5e3;
+  --f-display:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11181d; --paper:#18222a; --ink:#e3eaee; --muted:#93a4ae; --line:#2c3a44;
+  --accent:#e58a52; --accent-soft:#3a2518; --steel:#7fb2d0; --steel-soft:#1c2f3b;
+  --ok:#6cc58f; --ok-soft:#173326; --bad:#f08a80; --bad-soft:#3a1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11181d; --paper:#18222a; --ink:#e3eaee; --muted:#93a4ae; --line:#2c3a44;
+  --accent:#e58a52; --accent-soft:#3a2518; --steel:#7fb2d0; --steel-soft:#1c2f3b;
+  --ok:#6cc58f; --ok-soft:#173326; --bad:#f08a80; --bad-soft:#3a1d1b; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+[hidden]{display:none!important}
+.wrap{max-width:1200px;margin:0 auto;padding-block:20px 56px}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:14px;display:grid;gap:2px}
+.back{font-size:.88rem;color:var(--steel);text-decoration:none;width:max-content}
+.back:hover{text-decoration:underline}
+.course{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:6px 0 0}
+h1{font-family:var(--f-display);font-weight:900;font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.2;margin:2px 0;text-wrap:balance}
+.byline{font-size:.88rem;color:var(--muted)}
+.byline b{color:var(--ink)}
+nav.tabs{display:flex;gap:0;margin:16px 0 14px;border:1.5px solid var(--ink);width:max-content;max-width:100%;overflow-x:auto}
+nav.tabs button{all:unset;cursor:pointer;padding:7px 14px;font-size:.92rem;font-weight:500;white-space:nowrap;border-right:1px solid var(--line)}
+nav.tabs button:last-child{border-right:0}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:16px;align-items:start}
+.viewer{position:relative;height:min(74vh,660px);min-height:380px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#cv:active{cursor:grabbing}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lb{position:absolute;left:0;top:0;font:600 12.5px/1.25 var(--f-mono);color:var(--ink);background:color-mix(in srgb,var(--paper) 78%,transparent);padding:0 3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lb.ac{color:var(--accent)} .lb.st{color:var(--steel)} .lb.ok{color:var(--ok)} .lb.mu{color:var(--muted);font-weight:400}
+.lb.big{font-size:15px}
+.vtools{position:absolute;left:8px;top:8px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 16px)}
+.vbtn{all:unset;cursor:pointer;font-size:.8rem;padding:3px 10px;background:var(--paper);border:1px solid var(--line);white-space:nowrap}
+.vbtn:hover{border-color:var(--steel)}
+.vbtn[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--paper)}
+.vbtn:focus-visible{outline:2px solid var(--accent)}
+.hint{position:absolute;right:8px;bottom:6px;font-size:.74rem;color:var(--muted);pointer-events:none}
+.nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted)}
+
+.panel{background:var(--paper);border:1px solid var(--line);padding:14px 16px;display:grid;gap:14px;min-width:0}
+.ph{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.seg{display:inline-flex;border:1.5px solid var(--ink);max-width:100%;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;font-size:.84rem;padding:4px 11px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible{outline:2px solid var(--accent)}
+.bigidx{font-family:var(--f-mono);font-weight:600;font-size:2rem;color:var(--accent);line-height:1.2;font-variant-numeric:tabular-nums}
+.bigidx.st{color:var(--steel)}
+.ob{text-decoration:overline;text-decoration-thickness:1.5px}
+.stps{display:flex;flex-wrap:wrap;gap:8px 14px}
+.stp{display:flex;align-items:center;gap:4px}
+.stp .sl{font-family:var(--f-mono);font-size:.9rem;color:var(--muted);width:1.1em;text-align:right}
+.sb{all:unset;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--line);font-size:1.05rem;background:var(--bg)}
+.sb:hover{border-color:var(--steel)}
+.sb:focus-visible{outline:2px solid var(--accent)}
+.sv{font-family:var(--f-mono);font-weight:600;font-size:1.15rem;min-width:2em;text-align:center}
+.sv.auto{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;cursor:pointer;font-family:var(--f-mono);font-size:.85rem;padding:2px 9px;border:1px solid var(--line);background:var(--bg)}
+.chip:hover{border-color:var(--steel)}
+.chip:focus-visible{outline:2px solid var(--accent)}
+.tgs{display:grid;gap:6px}
+.tg{display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer}
+.tg input{accent-color:var(--accent);width:16px;height:16px}
+.selrow{display:flex;align-items:center;gap:8px;font-size:.9rem}
+select,.tin{font:inherit;font-size:.92rem;padding:4px 8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.tin{font-family:var(--f-mono);width:6.5em}
+.tin:focus,select:focus{outline:none;border-color:var(--accent)}
+.introw{display:grid;grid-template-columns:auto auto auto;gap:6px 10px;align-items:center;justify-content:start}
+.introw label{font-family:var(--f-mono);font-size:.88rem;color:var(--muted)}
+.steps{background:var(--steel-soft);padding:12px 14px;font-size:.9rem;line-height:1.65}
+.steps ol{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.steps b{color:var(--steel)}
+.mono{font-family:var(--f-mono)}
+.note{font-size:.84rem;color:var(--muted);margin:0}
+.warn{background:var(--bad-soft);border-left:3px solid var(--bad);padding:8px 12px;font-size:.88rem}
+.quiz{border:1.5px solid var(--accent);padding:12px 14px;display:grid;gap:10px}
+.qacts{display:flex;flex-wrap:wrap;gap:8px}
+.b{all:unset;cursor:pointer;font-size:.86rem;font-weight:500;padding:5px 14px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper)}
+.b.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.b:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fb{padding:8px 12px;font-size:.9rem}
+.fb.ok{background:var(--ok-soft);border-left:3px solid var(--ok)}
+.fb.no{background:var(--bad-soft);border-left:3px solid var(--bad)}
+.score{font-family:var(--f-mono);font-size:.82rem;color:var(--muted)}
+
+/* proof */
+.proof{max-width:780px}
+.proof h2{font-family:var(--f-display);font-weight:900;font-size:1.35rem;margin:34px 0 4px;text-wrap:balance}
+.proof h2:first-child{margin-top:6px}
+.proof .en{font-family:var(--f-display);color:var(--muted);font-size:.88rem;margin:0 0 12px}
+.pstep{display:grid;grid-template-columns:2.2em minmax(0,1fr);gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.pstep .n{font-family:var(--f-mono);font-weight:600;color:var(--accent)}
+.pstep .t{font-weight:700}
+.pstep p{margin:2px 0 0}
+.eq{font-family:var(--f-mono);font-weight:600;color:var(--steel);background:var(--steel-soft);padding:6px 10px;margin:6px 0 0;overflow-x:auto;white-space:nowrap;display:block}
+.box{background:var(--paper);border:1px solid var(--line);padding:14px;margin-top:12px}
+.box svg{display:block;width:100%;max-width:440px;height:auto;margin:0 auto;color:var(--ink)}
+.readout{font-size:.9rem;line-height:1.7;margin-top:8px}
+.pv svg text{fill:currentColor;font-family:var(--f-mono);font-size:13px}
+.tbl{overflow-x:auto}
+table.cmp{border-collapse:collapse;min-width:420px;font-size:.92rem}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:6px 12px;text-align:left;font-family:var(--f-mono)}
+table.cmp thead th{font-family:var(--f-body);font-size:.8rem;color:var(--muted);border-bottom:1.5px solid var(--ink)}
+.mcq{display:grid;gap:6px;margin-top:8px}
+.opt{display:flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--line);cursor:pointer;background:var(--paper)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)} .opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt input{accent-color:var(--accent)}
+.toolink{display:inline-block;margin-top:8px;font-size:.88rem;color:var(--steel)}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+
+@media (max-width:880px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .viewer{height:56vh;min-height:320px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="./?ch=3">← 回到講義第 3 章</a>
+    <p class="course">Introduction to Materials Science and Engineering</p>
+    <h1>米勒指數 3D 互動教具</h1>
+    <div class="byline">明志科技大學 材料工程系　<b>黃裕清 老師</b>　｜　對照課本 §3.8–3.12</div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="教具單元">
+    <button role="tab" data-tab="plane">晶面 (hkl)</button>
+    <button role="tab" data-tab="dir">晶向 [uvw]</button>
+    <button role="tab" data-tab="hex">六方 米勒–布拉菲</button>
+    <button role="tab" data-tab="proof">證明</button>
+  </nav>
+
+  <section class="stage" id="stage">
+    <div class="viewer" id="viewer">
+      <canvas id="cv" aria-label="可旋轉的 3D 晶胞圖"></canvas>
+      <div id="labels" aria-hidden="true"></div>
+      <div class="vtools" id="vtools"></div>
+      <div class="hint">拖曳旋轉・滾輪或雙指縮放</div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </section>
+
+  <section class="proof" id="proof" hidden></section>
+
+  <footer>明志科技大學 材料工程系 黃裕清 老師｜材料科學與工程導論 互動教具</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+/* ================= helpers ================= */
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a};
+const lcm=(a,b)=>a/gcd(a,b)*b;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function frac(n,d){if(d<0){n=-n;d=-d}const g=gcd(n,d)||1;return{n:n/g,d:d/g}}
+function toFrac(x){for(let d=1;d<=24;d++){const n=Math.round(x*d);if(Math.abs(x*d-n)<1e-7)return frac(n,d)}return null}
+function fstr(x){const f=typeof x==="number"?toFrac(x):x;if(!f)return(+x).toFixed(3);if(f.d===1)return f.n<0?"−"+(-f.n):String(f.n);return(f.n<0?"−":"")+Math.abs(f.n)+"/"+f.d}
+function parseFrac(s){s=String(s).trim().replace(/[−–—]/g,"-").replace(/\s/g,"");
+  if(/^[+-]?(∞|inf|infinity|無限|無窮)$/i.test(s))return "inf";
+  if(s==="")return undefined;
+  let m=s.match(/^([+-]?\d+)\/([+-]?\d+)$/);if(m){return +m[2]?frac(+m[1],+m[2]):undefined}
+  if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)){const f=toFrac(parseFloat(s));return f||undefined}
+  return undefined}
+const ib=n=>n<0?`<span class="ob">${-n}</span>`:String(n);
+const idx=(a,br)=>br[0]+a.map(ib).join(a.some(v=>Math.abs(v)>9)?"&thinsp;":"")+br[1];
+function reduce(a){const g=a.reduce((s,v)=>gcd(s,v),0)||1;return a.map(v=>v/g+0)}
+const aFrac=(m,unit="a")=>{if(m===1)return unit;if(m===-1)return"−"+unit;return(m<0?"−":"")+unit+"/"+Math.abs(m)};
+const coordStr=p=>"("+p.map(v=>fstr(v)).join(", ")+")";
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ================= state ================= */
+const S={tab:"plane",
+  plane:{h:1,k:1,l:1,mode:"idx",ints:["1","1","1"],showInt:true,showNormal:false,ext:false,family:false,eq:false,atoms:"none"},
+  dir:{u:1,v:1,w:0,mode:"idx",tail:["0","0","0"],head:["1","1/2","0"],showPath:true,ext:false,eq:false,showPlane:false,atoms:"none",corner:false},
+  hex:{kind:"plane",h:1,k:0,l:0,din:"3",U:1,V:0,W:0,u4:2,v4:-1,w4:0,showInt:true,path3:true,path4:true,eq:false,atoms:false},
+  quiz:{plane:null,dir:null,hex:null},
+  ans:{h:0,k:0,l:0}};
+let score={ok:0,n:0};try{score=JSON.parse(localStorage.getItem("miller-score"))||score}catch(e){}
+const saveScore=()=>{try{localStorage.setItem("miller-score",JSON.stringify(score))}catch(e){}};
+const getP=k=>k.split(".").reduce((o,x)=>o[x],S);
+const setP=(k,v)=>{const p=k.split(".");const last=p.pop();p.reduce((o,x)=>o[x],S)[last]=v};
+
+/* ================= 3D ================= */
+const HAS3D=typeof THREE!=="undefined";
+let renderer,scene,camera,dyn;let labels=[],lbEls=[];
+const view={theta:.49,phi:1.23,r:4.4,target:null,W:1,H:1};
+let autoRot=false,rafAuto=0;
+const V=(x,y,z)=>new THREE.Vector3(y,z,x); /* crystal (x toward viewer, y right, z up) → three.js */
+const CH=1.633;
+let A1,A2,A3,CC;
+const HX=(x,y,z)=>A1.clone().multiplyScalar(x).add(A2.clone().multiplyScalar(y)).add(CC.clone().multiplyScalar(z));
+const HEXV=[[1,0],[1,1],[0,1],[-1,0],[-1,-1],[0,-1]];
+let COL={};
+function readColors(){COL={ink:css("--ink"),muted:css("--muted"),line:css("--line"),accent:css("--accent"),steel:css("--steel"),ok:css("--ok"),paper:css("--paper"),soft:css("--steel-soft")}}
+
+function init3D(){
+  if(!HAS3D){$("viewer").insertAdjacentHTML("beforeend",'<div class="nogl">3D 繪圖程式沒有載入成功。請確認網路連線後重新整理頁面。</div>');return}
+  const cv=$("cv");
+  try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true})}catch(e){$("viewer").insertAdjacentHTML("beforeend",'<div class="nogl">這台裝置的瀏覽器不支援 3D 繪圖（WebGL）。請換一個瀏覽器或裝置試試。</div>');return}
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(32,1,.05,100);
+  scene.add(new THREE.AmbientLight(0xffffff,.78));const dl=new THREE.DirectionalLight(0xffffff,.5);dl.position.set(3,6,5);scene.add(dl);
+  dyn=new THREE.Group();scene.add(dyn);
+  A1=new THREE.Vector3(-.5,0,Math.sqrt(3)/2);A2=new THREE.Vector3(1,0,0);A3=new THREE.Vector3(-.5,0,-Math.sqrt(3)/2);CC=new THREE.Vector3(0,CH,0);
+  view.target=V(.5,.5,.5);
+  const ro=new ResizeObserver(resize);ro.observe($("viewer"));resize();
+  /* pointer controls */
+  const ptrs=new Map();let pinch=null;
+  cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});stopAuto()});
+  cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);
+    if(ptrs.size===1){view.theta-=(e.clientX-p.x)*.009;view.phi=clamp(view.phi-(e.clientY-p.y)*.009,.03,Math.PI-.03)}
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)view.r=clamp(view.r*pinch/d,1.6,16);pinch=d}
+    render()});
+  const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null};
+  cv.addEventListener("pointerup",end);cv.addEventListener("pointercancel",end);
+  cv.addEventListener("wheel",e=>{e.preventDefault();view.r=clamp(view.r*Math.exp(e.deltaY*.0012),1.6,16);render()},{passive:false});
+}
+function resize(){if(!renderer)return;const v=$("viewer");view.W=v.clientWidth;view.H=v.clientHeight;renderer.setSize(view.W,view.H,false);camera.aspect=view.W/Math.max(1,view.H);camera.updateProjectionMatrix();render()}
+function render(){if(!renderer)return;const t=view.target;
+  camera.position.set(t.x+view.r*Math.sin(view.phi)*Math.sin(view.theta),t.y+view.r*Math.cos(view.phi),t.z+view.r*Math.sin(view.phi)*Math.cos(view.theta));
+  camera.lookAt(t);renderer.render(scene,camera);placeLabels()}
+function placeLabels(){labels.forEach((l,i)=>{const el=lbEls[i];if(!el)return;const v=l.p.clone().project(camera);if(v.z>1){el.style.display="none";return}el.style.display="";
+  const x=(v.x+1)/2*view.W+(l.dx||0),y=(1-v.y)/2*view.H+(l.dy||0);el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%)`})}
+function flushLabels(){$("labels").innerHTML=labels.map((l,i)=>`<div class="lb ${l.cls||""}">${l.html}</div>`).join("");lbEls=[...$("labels").children]}
+function lab(p,html,cls="",dx=0,dy=0){labels.push({p,html,cls,dx,dy})}
+function startAuto(){autoRot=true;const step=()=>{if(!autoRot)return;view.theta+=.006;render();rafAuto=requestAnimationFrame(step)};rafAuto=requestAnimationFrame(step);syncVtools()}
+function stopAuto(){if(!autoRot)return;autoRot=false;cancelAnimationFrame(rafAuto);syncVtools()}
+function tweenTo(th,ph,r){stopAuto();if(reduceMotion){view.theta=th;view.phi=ph;if(r)view.r=r;render();return}
+  const s={th:view.theta,ph:view.phi,r:view.r},t0=performance.now();
+  let d=((th-s.th)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;
+  const step=t=>{const k=Math.min(1,(t-t0)/480),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;view.theta=s.th+d*e;view.phi=s.ph+(ph-s.ph)*e;view.r=s.r+((r||s.r)-s.r)*e;render();if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+function lookAlong(v3,r){const d=v3.clone().normalize();tweenTo(Math.atan2(d.x,d.z),clamp(Math.acos(clamp(d.y,-1,1)),.03,Math.PI-.03),r)}
+
+/* primitives */
+function clear(){dyn.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});dyn.clear();labels=[]}
+function seg(a,b,color,o={}){const g=new THREE.BufferGeometry().setFromPoints([a,b]);const op=o.op??1;
+  const m=o.dash?new THREE.LineDashedMaterial({color,dashSize:o.ds||.05,gapSize:o.gs||.035,transparent:op<1,opacity:op}):new THREE.LineBasicMaterial({color,transparent:op<1,opacity:op});
+  const l=new THREE.Line(g,m);if(o.dash)l.computeLineDistances();dyn.add(l);return l}
+function rod(a,b,color,r=.012,op=1){const d=b.clone().sub(a),len=d.length();if(len<1e-6)return;const me=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10),new THREE.MeshLambertMaterial({color,transparent:op<1,opacity:op}));
+  me.position.copy(a).addScaledVector(d,.5);me.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());dyn.add(me)}
+function arrow(a,b,color,r=.016,op=1){const d=b.clone().sub(a),len=d.length();if(len<1e-6)return;const u=d.clone().normalize();const hl=Math.min(.13,len*.4);const e=b.clone().addScaledVector(u,-hl);
+  rod(a,e,color,r,op);const me=new THREE.Mesh(new THREE.ConeGeometry(r*3,hl,16),new THREE.MeshLambertMaterial({color,transparent:op<1,opacity:op}));me.position.copy(e).addScaledVector(u,hl/2);me.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),u);dyn.add(me)}
+function ball(p,r,color,op=1){const me=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),new THREE.MeshLambertMaterial({color,transparent:op<1,opacity:op}));me.position.copy(p);dyn.add(me)}
+function poly(pts,color,op=.55,outline=null){if(pts.length<3)return null;
+  const c=pts.reduce((s,p)=>s.add(p),new THREE.Vector3()).multiplyScalar(1/pts.length);let n=null;
+  for(let i=0;i<pts.length&&!n;i++)for(let j=i+1;j<pts.length&&!n;j++){const x=pts[i].clone().sub(c).cross(pts[j].clone().sub(c));if(x.length()>1e-7)n=x.normalize()}
+  if(!n)return null;const p0=pts.find(p=>p.distanceTo(c)>1e-7);const u=p0.clone().sub(c).normalize(),w=n.clone().cross(u);
+  const s=pts.map(p=>({p,a:Math.atan2(p.clone().sub(c).dot(w),p.clone().sub(c).dot(u))})).sort((a,b)=>a.a-b.a).map(o=>o.p);
+  const pos=[];for(let i=0;i<s.length;i++){const a=s[i],b=s[(i+1)%s.length];pos.push(c.x,c.y,c.z,a.x,a.y,a.z,b.x,b.y,b.z)}
+  const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  dyn.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false})));
+  if(outline)dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...s,s[0]]),new THREE.LineBasicMaterial({color:outline})));
+  return{c,n}}
+function clip(edges,f){const pts=[];edges.forEach(([a,b])=>{const fa=f(a),fb=f(b);if(Math.abs(fa)<1e-9)pts.push(a);if(Math.abs(fb)<1e-9)pts.push(b);
+  if(fa*fb<0&&Math.abs(fa)>1e-9&&Math.abs(fb)>1e-9){const t=fa/(fa-fb);pts.push(a.map((v,i)=>v+(b[i]-v)*t))}});
+  const u=[];pts.forEach(q=>{if(!u.some(w=>w.every((v,i)=>Math.abs(v-q[i])<1e-7)))u.push(q)});return u}
+function boxEdges(lo,hi){const e=[];const L=[[lo[0],hi[0]],[lo[1],hi[1]],[lo[2],hi[2]]];
+  for(const y of L[1])for(const z of L[2])e.push([[lo[0],y,z],[hi[0],y,z]]);
+  for(const x of L[0])for(const z of L[2])e.push([[x,lo[1],z],[x,hi[1],z]]);
+  for(const x of L[0])for(const y of L[1])e.push([[x,y,lo[2]],[x,y,hi[2]]]);return e}
+const CORN=[];for(const x of[0,1])for(const y of[0,1])for(const z of[0,1])CORN.push([x,y,z]);
+const FACEC=[[.5,.5,0],[.5,.5,1],[.5,0,.5],[.5,1,.5],[0,.5,.5],[1,.5,.5]];
+function atomsC(type,n){const m=new Map(),add=(x,y,z)=>{const k=[x,y,z].map(v=>Math.round(v*1e3)).join();if(!m.has(k))m.set(k,[x,y,z])};
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++)for(let k=0;k<n;k++){CORN.forEach(c=>add(i+c[0],j+c[1],k+c[2]));if(type==="bcc")add(i+.5,j+.5,k+.5);if(type==="fcc")FACEC.forEach(f=>add(i+f[0],j+f[1],k+f[2]))}
+  return[...m.values()]}
+function drawCells(n,quiz){for(let i=0;i<n;i++)for(let j=0;j<n;j++)for(let k=0;k<n;k++){const main=!i&&!j&&!k;
+  boxEdges([i,j,k],[i+1,j+1,k+1]).forEach(([a,b])=>seg(V(...a),V(...b),main?COL.ink:COL.muted,{op:main?1:.45}))}
+  if(quiz){boxEdges([0,0,0],[1,1,1]).forEach(([a,b])=>{const m=a.map((v,i)=>(v+b[i])/2);ball(V(...m),.014,COL.muted)})}}
+function drawAxes(len){const O=V(0,0,0);[["x",V(len,0,0)],["y",V(0,len,0)],["z",V(0,0,len)]].forEach(([n,e])=>{arrow(O,e,COL.muted,.006);lab(e,n,"mu big",0,0)});lab(O,"O","mu",-10,10)}
+function famC(h,k,l,dedupe){const a=[Math.abs(h),Math.abs(k),Math.abs(l)],P=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]],m=new Map();
+  P.forEach(p=>{for(const sx of[1,-1])for(const sy of[1,-1])for(const sz of[1,-1]){let v=[a[p[0]]*sx+0,a[p[1]]*sy+0,a[p[2]]*sz+0];if(dedupe){const f=v.find(x=>x!==0);if(f<0)v=v.map(x=>-x+0)}m.set(v.join(),v)}});return[...m.values()]}
+
+/* ================= PLANE (cubic) ================= */
+function planeHKL(){const P=S.plane;if(P.mode==="quiz"&&S.quiz.plane)return S.quiz.plane;
+  if(P.mode==="int"){const r=intsToHKL(P.ints);return r.ok?r.raw:null}return[P.h,P.k,P.l]}
+function intsToHKL(ints){const fr=ints.map(parseFrac);if(fr.some(f=>f===undefined))return{ok:false,msg:"有一格看不懂。請輸入像 1、1/2、-1 或 ∞ 的值。"};
+  if(fr.some(f=>f!=="inf"&&f.n===0))return{ok:false,msg:"截距不能是 0。晶面通過原點時，請先把原點移到別的角落。"};
+  if(fr.every(f=>f==="inf"))return{ok:false,msg:"三個截距都是 ∞ 的話不是一個晶面。"};
+  const rec=fr.map(f=>f==="inf"?frac(0,1):frac(f.d,f.n));const L=rec.reduce((s,f)=>lcm(s,f.d),1);
+  const raw=rec.map(f=>f.n*L/f.d);const hkl=reduce(raw);return{ok:true,fr,rec,L,raw,hkl}}
+function buildPlane(){const P=S.plane,quiz=P.mode==="quiz";const hkl=planeHKL();const n=P.ext&&!quiz?2:1;
+  drawCells(n,quiz);drawAxes(n===2?2.35:1.4);
+  if(!hkl||hkl.every(v=>v===0))return;const[h,k,l]=hkl;
+  const o=[h<0?1:0,k<0?1:0,l<0?1:0];const f=(q,c=1)=>h*(q[0]-o[0])+k*(q[1]-o[1])+l*(q[2]-o[2])-c;
+  const cell=boxEdges([0,0,0],[1,1,1]),box=boxEdges([0,0,0],[n,n,n]);
+  if(P.eq&&!quiz){famC(h,k,l,true).forEach(v=>{const r=reduce(v),me=reduce(hkl);if(r.join()===me.join()||r.map(x=>-x+0).join()===me.join())return;
+    const oo=v.map(x=>x<0?1:0);const pts=clip(cell,q=>v[0]*(q[0]-oo[0])+v[1]*(q[1]-oo[1])+v[2]*(q[2]-oo[2])-1);poly(pts.map(p=>V(...p)),COL.steel,.16,COL.steel)})}
+  if(P.family&&!quiz){let lo=1e9,hi=-1e9;CORN.forEach(c=>{const v=f(c.map(x=>x*n),0);lo=Math.min(lo,v);hi=Math.max(hi,v)});
+    for(let c=Math.ceil(lo);c<=Math.floor(hi);c++){if(c===1)continue;poly(clip(box,q=>f(q,c)).map(p=>V(...p)),COL.accent,.12,COL.accent)}
+    const N=h*h+k*k+l*l,p0=o.map((v,i)=>v+0*hkl[i]),p1=o.map((v,i)=>v+hkl[i]/N);
+    arrow(V(...p0),V(...p1),COL.ok,.01);lab(V(...p1.map((v,i)=>(v+p0[i])/2)),"d","ok big",14,-6)}
+  if(P.ext&&!quiz)poly(clip(box,q=>f(q,1)).map(p=>V(...p)),COL.accent,.2);
+  const res=poly(clip(cell,q=>f(q,1)).map(p=>V(...p)),COL.accent,.58,COL.accent);
+  if(P.atoms!=="none"){atomsC(P.atoms,n).forEach(a=>{const on=Math.abs(f(a,1))<1e-6;ball(V(...a),on?.07:.05,on?COL.accent:COL.steel,on?1:.55)})}
+  if(o.some(v=>v)){ball(V(...o),.035,COL.steel);if(!quiz)lab(V(...o),"O′ 新原點","st",0,-18)}
+  if(P.showInt&&!quiz)[[h,0],[k,1],[l,2]].forEach(([m,ax])=>{if(!m)return;const q=o.slice();q[ax]+=1/m;seg(V(...o),V(...q),COL.accent,{dash:true});ball(V(...q),.028,COL.accent);
+    lab(V(...q),"xyz"[ax]+"："+aFrac(m),"ac",0,-15)});
+  if(P.showNormal&&res&&!quiz){const nn=V(h,k,l).normalize();arrow(res.c,res.c.clone().addScaledVector(nn,.6),COL.steel,.012);lab(res.c.clone().addScaledVector(nn,.7),idx(hkl,"[]"),"st big")}
+  if(res&&!quiz)lab(res.c,idx(hkl,"()"),"ac big",0,0)}
+function planeView(kind){const hkl=planeHKL();if(!hkl)return;const n=V(...hkl).normalize();
+  if(kind==="face")lookAlong(n);else{let s=n.clone().cross(new THREE.Vector3(0,1,0));if(s.length()<.1)s=n.clone().cross(new THREE.Vector3(1,0,0));lookAlong(s.add(new THREE.Vector3(0,.15,0)))}}
+
+/* ================= DIRECTION (cubic) ================= */
+function dirData(){const D=S.dir;
+  if(D.mode==="quiz"&&S.quiz.dir){const u=S.quiz.dir;const m=Math.max(...u.map(Math.abs));const t=u.map(x=>x<0?1:0);return{ok:true,uvw:u,tail:t,head:t.map((v,i)=>v+u[i]/m)}}
+  if(D.mode==="pts"){const t=D.tail.map(parseFrac),h=D.head.map(parseFrac);if([...t,...h].some(x=>x===undefined||x==="inf"))return{ok:false,msg:"有一格看不懂。請輸入像 0、1、1/2 的座標。"};
+    const tv=t.map(f=>f.n/f.d),hv=h.map(f=>f.n/f.d);const d=hv.map((v,i)=>v-tv[i]);if(d.every(v=>Math.abs(v)<1e-9))return{ok:false,msg:"頭和尾是同一點，畫不出向量。"};
+    const df=d.map(v=>toFrac(v));const L=df.reduce((s,f)=>lcm(s,f.d),1);const raw=df.map(f=>f.n*L/f.d);return{ok:true,uvw:reduce(raw),tail:tv,head:hv,diff:df,L,raw}}
+  const u=[D.u,D.v,D.w];if(u.every(v=>v===0))return{ok:false,msg:"三個指數不能都是 0。"};const m=Math.max(...u.map(Math.abs));const t=u.map(x=>x<0?1:0);return{ok:true,uvw:u,tail:t,head:t.map((v,i)=>v+u[i]/m),m}}
+function buildDir(){const D=S.dir,quiz=D.mode==="quiz";const n=D.ext&&!quiz?2:1;drawCells(n,quiz);drawAxes(n===2?2.35:1.4);
+  if(D.corner||quiz){CORN.forEach(c=>{if(c.every(v=>v===0))return;lab(V(...c),c.join(""),"mu",12,-9)})}
+  const r=dirData();if(!r.ok)return;const{uvw,tail,head}=r;const d=head.map((v,i)=>v-tail[i]);
+  if(D.showPlane&&!quiz){const[h,k,l]=uvw,o=[h<0?1:0,k<0?1:0,l<0?1:0];poly(clip(boxEdges([0,0,0],[1,1,1]),q=>h*(q[0]-o[0])+k*(q[1]-o[1])+l*(q[2]-o[2])-1).map(p=>V(...p)),COL.steel,.25,COL.steel)}
+  if(D.eq&&!quiz){const c=[.5,.5,.5];famC(...uvw,false).forEach(v=>{const m=Math.max(...v.map(Math.abs));arrow(V(...c),V(...c.map((x,i)=>x+v[i]*.45/m)),COL.steel,.007,.75)})}
+  if(D.ext&&!quiz){let t0=-1e9,t1=1e9;for(let i=0;i<3;i++){if(Math.abs(d[i])<1e-9){if(tail[i]<-1e-9||tail[i]>n+1e-9){t0=1;t1=0}continue}const a=(0-tail[i])/d[i],b=(n-tail[i])/d[i];t0=Math.max(t0,Math.min(a,b));t1=Math.min(t1,Math.max(a,b))}
+    if(t1>t0)seg(V(...tail.map((v,i)=>v+d[i]*t0)),V(...tail.map((v,i)=>v+d[i]*t1)),COL.accent,{dash:true})}
+  if(D.atoms!=="none"){const dv=new THREE.Vector3(...d);atomsC(D.atoms,n).forEach(a=>{const on=new THREE.Vector3(...a.map((v,i)=>v-tail[i])).cross(dv).length()<1e-6;ball(V(...a),on?.07:.05,on?COL.accent:COL.steel,on?1:.55)})}
+  if(D.showPath&&!quiz){let p=tail.slice();[0,1,2].forEach(ax=>{if(Math.abs(d[ax])<1e-9)return;const q=p.slice();q[ax]+=d[ax];seg(V(...p),V(...q),COL.steel,{dash:true,ds:.04,gs:.03});
+    lab(V(...p.map((v,i)=>(v+q[i])/2)),"xyz"[ax]+" "+(d[ax]>0?"+":"")+fstr(d[ax]),"st",0,-12);p=q})}
+  arrow(V(...tail),V(...head),COL.accent,.02);ball(V(...tail),.03,COL.accent);
+  if(!quiz){lab(V(...tail),"尾 "+coordStr(tail),"mu",0,16);lab(V(...head),"頭 "+coordStr(head),"mu",0,16);lab(V(...head),idx(uvw,"[]"),"ac big",0,-16)}}
+
+/* ================= HEX (Miller–Bravais) ================= */
+function hexEdges(){const e=[];for(let i=0;i<6;i++){const a=HEXV[i],b=HEXV[(i+1)%6];e.push([[a[0],a[1],0],[b[0],b[1],0]],[[a[0],a[1],1],[b[0],b[1],1]],[[a[0],a[1],0],[a[0],a[1],1]])}return e}
+function hexPlane(){const X=S.hex;if(X.kind==="quiz"&&S.quiz.hex)return S.quiz.hex;return[X.h,X.k,X.l]}
+function hexDir(){const X=S.hex;if(X.din==="4"){const u=X.u4,v=X.v4,t=-(u+v),w=X.w4;return{U:u-t,V:v-t,W:w,four:[u,v,t,w]}}
+  return{U:X.U,V:X.V,W:X.W,four:reduce([2*X.U-X.V,2*X.V-X.U,-(X.U+X.V),3*X.W])}}
+function famH(h,k,l){const i=-(h+k),a=[h,k,i],P=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]],m=new Map();
+  P.forEach(p=>{for(const sl of[1,-1]){let v=[a[p[0]],a[p[1]],a[p[2]],l*sl].map(x=>x+0);const f=v.find(x=>x!==0);if(f<0)v=v.map(x=>-x+0);m.set(v.join(),v)}});return[...m.values()]}
+function buildHex(){const X=S.hex,quiz=X.kind==="quiz";
+  hexEdges().forEach(([a,b])=>seg(HX(...a),HX(...b),COL.ink));
+  const O=HX(0,0,0);[["a₁",HX(1.55,0,0)],["a₂",HX(0,1.55,0)],["a₃",HX(-1.55,-1.55,0)],["c",HX(0,0,1.35)]].forEach(([n,e])=>{arrow(O,e,COL.muted,.006);lab(e,n,"mu big")});
+  lab(O,"O","mu",-10,12);
+  if(X.kind==="dir"){const d=hexDir();if(!d.U&&!d.V&&!d.W)return;const m=Math.max(Math.abs(d.U),Math.abs(d.V),Math.abs(d.W));const hd=[d.U/m,d.V/m,d.W/m];
+    if(X.path3){let p=[0,0,0];[[0,d.U/m,"U"],[1,d.V/m,"V"],[2,d.W/m,"W"]].forEach(([ax,v,nm])=>{if(Math.abs(v)<1e-9)return;const q=p.slice();q[ax]+=v;seg(HX(...p),HX(...q),COL.steel,{dash:true});lab(HX(...p.map((x,i)=>(x+q[i])/2)),["a₁","a₂","c"][ax]+" "+fstr(v),"st",0,-12);p=q})}
+    if(X.path4){const u=(2*d.U-d.V)/3/m,v=(2*d.V-d.U)/3/m,t=-(d.U+d.V)/3/m,w=d.W/m;let p=new THREE.Vector3();
+      [[A1,u,"a₁"],[A2,v,"a₂"],[A3,t,"a₃"],[CC,w,"c"]].forEach(([vec,s,nm])=>{if(Math.abs(s)<1e-9)return;const q=p.clone().addScaledVector(vec,s);seg(p,q,COL.ok,{dash:true,ds:.035,gs:.03});lab(p.clone().add(q).multiplyScalar(.5),nm+" "+fstr(s),"ok",0,12);p=q})}
+    arrow(O,HX(...hd),COL.accent,.02);lab(HX(...hd),idx(d.four,"[]"),"ac big",0,-16);return}
+  const hkl=hexPlane();const[h,k,l]=hkl;const i=-(h+k);if(!h&&!k&&!l)return;
+  const f=(q,c=1)=>h*q[0]+k*q[1]+l*q[2]-c;
+  if(X.eq&&!quiz){famH(h,k,l).forEach(v=>{const me=[h,k,i,l];if(v.join()===me.join()||v.map(x=>-x+0).join()===me.join())return;poly(clip(hexEdges(),q=>v[0]*q[0]+v[1]*q[1]+v[3]*q[2]-1).map(p=>HX(...p)),COL.steel,.15,COL.steel)})}
+  const res=poly(clip(hexEdges(),q=>f(q)).map(p=>HX(...p)),COL.accent,.58,COL.accent);
+  if(X.atoms){const at=[];HEXV.forEach(([a,b])=>{at.push([a,b,0],[a,b,1])});at.push([0,0,0],[0,0,1],[2/3,1/3,.5],[-1/3,1/3,.5],[-1/3,-2/3,.5]);
+    at.forEach(a=>{const on=Math.abs(f(a))<1e-6;ball(HX(...a),on?.08:.06,on?COL.accent:COL.steel,on?1:.55)})}
+  if(X.showInt&&!quiz){[[h,[1,0,0],"a₁"],[k,[0,1,0],"a₂"],[i,[-1,-1,0],"a₃"],[l,[0,0,1],"c"]].forEach(([m,dir,nm])=>{if(!m)return;const s=1/m;if(Math.abs(s)>1.6)return;const q=dir.map(v=>v*s);
+    seg(O,HX(...q),COL.accent,{dash:true});ball(HX(...q),.03,COL.accent);lab(HX(...q),nm+"："+aFrac(m,nm==="c"?"c":"a"),"ac",0,-15)})}
+  if(res&&!quiz)lab(res.c,idx([h,k,i,l],"()"),"ac big")}
+
+/* ================= views ================= */
+function defaultView(){if(S.tab==="hex"){view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}
+  const n=(S.tab==="plane"?S.plane.ext:S.dir.ext)&&S[S.tab].mode!=="quiz"?2:1;view.target=V(n/2,n/2,n/2);return[.49,1.23,n===2?7:4.4]}
+function resetView(anim){const[t,p,r]=defaultView();if(anim)tweenTo(t,p,r);else{view.theta=t;view.phi=p;view.r=r;render()}}
+function syncVtools(){const vt=$("vtools");if(!vt)return;const btn=(id,txt,pr)=>`<button class="vbtn" data-v="${id}"${pr!=null?` aria-pressed="${pr}"`:""}>${txt}</button>`;
+  let h=btn("reset","重設視角");
+  if(S.tab==="plane")h+=btn("face","正視晶面")+btn("side","側視晶面");
+  if(S.tab==="dir")h+=btn("along","沿晶向看");
+  if(S.tab==="hex")h+=btn("top","俯視（沿 c 軸）")+btn("sidehex","側視");
+  h+=btn("auto","自動旋轉",autoRot);vt.innerHTML=h}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b||!HAS3D||!renderer)return;const v=b.dataset.v;
+  if(v==="auto"){autoRot?stopAuto():startAuto();return}
+  if(v==="reset")resetView(true);
+  if(v==="face")planeView("face");if(v==="side")planeView("side");
+  if(v==="along"){const r=dirData();if(r.ok)lookAlong(V(...r.uvw))}
+  if(v==="top")tweenTo(0,.03,6.4);if(v==="sidehex")tweenTo(.0,Math.PI/2,6.4)});
+
+function rebuild(){if(!renderer)return;readColors();clear();if(S.tab==="plane")buildPlane();else if(S.tab==="dir")buildDir();else if(S.tab==="hex")buildHex();flushLabels();render()}
+
+/* ================= panels ================= */
+const stepper=(key,lab_)=>`<div class="stp"><span class="sl">${lab_}</span><button class="sb" data-step="${key}" data-d="-1" aria-label="${lab_} 減一">−</button><output class="sv">${ib(getP(key))}</output><button class="sb" data-step="${key}" data-d="1" aria-label="${lab_} 加一">＋</button></div>`;
+const seg_=(key,opts)=>`<div class="seg" role="group">${opts.map(([v,t])=>`<button data-set="${key}" data-val="${v}" aria-pressed="${getP(key)===v}">${t}</button>`).join("")}</div>`;
+const tg=(key,txt)=>`<label class="tg"><input type="checkbox" data-tg="${key}" ${getP(key)?"checked":""}> ${txt}</label>`;
+const sel=(key,txt,opts)=>`<label class="selrow">${txt}<select data-sel="${key}">${opts.map(([v,t])=>`<option value="${v}"${getP(key)===v?" selected":""}>${t}</option>`).join("")}</select></label>`;
+const ATOMS=[["none","不顯示"],["sc","簡單立方"],["bcc","BCC"],["fcc","FCC"]];
+const scoreHTML=()=>`<span class="score">本機練習成績：答對 ${score.ok} / ${score.n} 題</span>`;
+
+function panelPlane(){const P=S.plane;let h=`<div><p class="ph">輸入方式</p>${seg_("plane.mode",[["idx","米勒指數"],["int","截距"],["quiz","看圖練習"]])}</div>`;
+  if(P.mode==="idx")h+=`<div><div class="bigidx" id="bigidx">${idx([P.h,P.k,P.l],"()")}</div><div class="stps">${stepper("plane.h","h")+stepper("plane.k","k")+stepper("plane.l","l")}</div></div>
+    <div><p class="ph">常見晶面</p><div class="chips">${[[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1],[1,-1,0],[-1,1,1],[1,-1,1],[2,1,0],[1,2,0],[0,1,2],[1,1,2],[2,2,0]].map(v=>`<button class="chip" data-preset="plane" data-p="${v}">${idx(v,"()")}</button>`).join("")}</div></div>`;
+  if(P.mode==="int")h+=`<div><p class="ph">相對原點 O 的截距（以 a 為單位）</p><div class="introw">${["x","y","z"].map((a,i)=>`<label for="int${i}">${a} 截距</label><input class="tin" id="int${i}" data-int="${i}" value="${P.ints[i]}" inputmode="text" autocomplete="off"><span class="note">${i===0?"例：1、1/2、-1、∞":""}</span>`).join("")}</div>
+    <div class="bigidx" id="bigidx" style="margin-top:8px"></div></div>`;
+  if(P.mode==="quiz")h+=quizBox("plane");
+  if(P.mode!=="quiz")h+=`<div class="tgs"><p class="ph">顯示</p>${tg("plane.showInt","截距")}${tg("plane.showNormal","法向量 [hkl]（和晶面垂直）")}${tg("plane.ext","延伸到 2×2×2 個晶胞")}${tg("plane.family","平行晶面族與面間距 d")}${tg("plane.eq","等效晶面族 {hkl}")}${sel("plane.atoms","原子：",ATOMS)}</div>`;
+  h+=`<div class="steps" id="steps"></div>`;return h}
+function stepsPlane(){const P=S.plane;const el=$("steps");if(!el)return;
+  if(P.mode==="quiz"){el.innerHTML=`<b>怎麼讀：</b>先看晶面和三個軸交在哪裡（晶胞邊上的小點是 1/2 的位置）。截距取倒數、化成最小整數，就是米勒指數。晶面通過原點時，先把原點移到相鄰的角落。`;return}
+  let hkl,extra="";
+  if(P.mode==="int"){const r=intsToHKL(P.ints);if(!r.ok){el.innerHTML=`<div class="warn">${r.msg}</div>`;$("bigidx").innerHTML="";return}hkl=r.hkl;$("bigidx").innerHTML=idx(r.raw,"()");
+    el.innerHTML=`<ol><li><b>截距：</b><span class="mono">${r.fr.map(f=>f==="inf"?"∞":fstr(f)).join("、")}</span></li><li><b>取倒數：</b><span class="mono">${r.rec.map(f=>fstr(f)).join("、")}</span>（∞ 的倒數是 0，代表晶面和那個軸平行）</li>
+    <li><b>化成整數：</b>${r.L>1?`乘以 ${r.L} 得 `:""}<b class="mono">${idx(r.raw,"()")}</b>${r.raw.join()!==hkl.join()?`。三個數有公因數，約分後是 <span class="mono">${idx(hkl,"()")}</span>：兩者互相平行，但 ${idx(r.raw,"()")} 是離原點較近的那一面，面間距只有一半（X 光繞射常用這種寫法）`:""}</li>${hkl.some(v=>v<0)?`<li><b>畫在晶胞裡：</b>有負的指數，所以圖上把原點移到相鄰的角落 O′，晶面方向不變。</li>`:""}</ol>`;return}
+  hkl=[P.h,P.k,P.l];if(hkl.every(v=>v===0)){el.innerHTML=`<div class="warn">h、k、l 不能全部是 0。</div>`;return}
+  const[h,k,l]=hkl,o=[h<0?1:0,k<0?1:0,l<0?1:0],N=h*h+k*k+l*l,g=reduce(hkl);
+  const intc=hkl.map((m,i)=>m?aFrac(m):"∞").join("、");
+  el.innerHTML=`<ol><li><b>決定原點：</b>${o.some(v=>v)?`有負的指數，把原點移到 O′ = <span class="mono">${coordStr(o)}</span>，晶面才會落在這個晶胞裡。`:"原點 O = (0, 0, 0)。"}</li>
+   <li><b>截距＝指數的倒數：</b>x、y、z 依序是 <span class="mono">${intc}</span>。指數 0 代表截距 ∞，晶面和那個軸平行。</li>
+   <li><b>反過來寫指數：</b>截距取倒數 → <span class="mono">${hkl.join("、")}</span> → <b class="mono">${idx(hkl,"()")}</b></li>
+   ${g.join()!==hkl.join()?`<li><b>有公因數：</b>${idx(hkl,"()")} 和 ${idx(g,"()")} 平行，但截距只有一半，面間距也是一半。X 光繞射常用這種寫法。</li>`:""}
+   <li><b>面間距：</b>d = a/√(h²+k²+l²) = a/√${N} ≈ ${(1/Math.sqrt(N)).toFixed(3)} a。打開「平行晶面族」可以看到 d。</li>
+   <li><b>法向量：</b>立方晶系中 ${idx(hkl,"[]")} 垂直於 ${idx(hkl,"()")}。理由見「證明」分頁。</li></ol>
+   ${P.eq?`<p class="note" style="margin-top:8px">{${idx(famC(h,k,l,true)[0].map(Math.abs),["",""])}} 共 ${famC(h,k,l,true).length} 組晶面（每組兩個互相平行的面），原子排列都一樣。</p>`:""}`;
+  $("bigidx").innerHTML=idx(hkl,"()")}
+
+function panelDir(){const D=S.dir;let h=`<div><p class="ph">輸入方式</p>${seg_("dir.mode",[["idx","晶向指數"],["pts","頭與尾座標"],["quiz","看圖練習"]])}</div>`;
+  if(D.mode==="idx")h+=`<div><div class="bigidx" id="bigidx">${idx([D.u,D.v,D.w],"[]")}</div><div class="stps">${stepper("dir.u","u")+stepper("dir.v","v")+stepper("dir.w","w")}</div></div>
+    <div><p class="ph">常見晶向</p><div class="chips">${[[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,1,1],[-1,1,0],[1,-1,1],[2,1,0],[0,1,2],[1,1,2],[-2,1,1],[1,2,-1]].map(v=>`<button class="chip" data-preset="dir" data-p="${v}">${idx(v,"[]")}</button>`).join("")}</div></div>`;
+  if(D.mode==="pts")h+=`<div><p class="ph">座標（以 a 為單位）</p><div class="introw">${["尾","頭"].map((nm,j)=>`<label>${nm}</label>${[0,1,2].map(i=>`<input class="tin" style="width:4.2em" data-pt="${j?"head":"tail"}" data-i="${i}" value="${D[j?"head":"tail"][i]}" aria-label="${nm} ${"xyz"[i]}" autocomplete="off">`).join("")}`).join("")}</div><p class="note">輸入像 0、1、1/2 的值，例如尾 (0, 0, 0)、頭 (1, 1/2, 0)。</p><div class="bigidx" id="bigidx" style="margin-top:6px"></div></div>`;
+  if(D.mode==="quiz")h+=quizBox("dir");
+  if(D.mode!=="quiz")h+=`<div class="tgs"><p class="ph">顯示</p>${tg("dir.showPath","分量路徑（沿 x、y、z 各走多少）")}${tg("dir.corner","角落座標")}${tg("dir.showPlane","同指數的晶面（看垂直關係）")}${tg("dir.ext","延伸到 2×2×2 個晶胞（看延長線穿過哪些原子）")}${tg("dir.eq","等效晶向族 ⟨uvw⟩")}${sel("dir.atoms","原子：",ATOMS)}</div>`;
+  h+=`<div class="steps" id="steps"></div>`;return h}
+function stepsDir(){const D=S.dir,el=$("steps");if(!el)return;
+  if(D.mode==="quiz"){el.innerHTML=`<b>怎麼讀：</b>找出向量的頭和尾座標，頭減尾，再化成最小整數。負的分量在數字上方加一橫。`;return}
+  const r=dirData();if(!r.ok){el.innerHTML=`<div class="warn">${r.msg}</div>`;if($("bigidx"))$("bigidx").innerHTML="";return}
+  $("bigidx").innerHTML=idx(r.uvw,"[]");
+  if(D.mode==="pts"){el.innerHTML=`<ol><li><b>頭減尾：</b><span class="mono">${coordStr(r.head)} − ${coordStr(r.tail)} = ${coordStr(r.diff.map(f=>f.n/f.d))}</span></li>
+    <li><b>消去分母：</b>${r.L>1?`乘以 ${r.L} 得 <span class="mono">${r.raw.join("、")}</span>`:"已經是整數"}</li><li><b>約成最小整數：</b><b class="mono">${idx(r.uvw,"[]")}</b></li></ol>`;return}
+  const m=r.m;el.innerHTML=`<ol><li><b>找最大的指數：</b>|u|、|v|、|w| 中最大的是 ${m}。</li><li><b>每個指數除以 ${m}：</b>得到晶胞內的分量 <span class="mono">${coordStr(r.uvw.map(v=>v/m))}</span>。</li>
+   <li><b>放起點：</b>${r.uvw.some(v=>v<0)?`有負的分量，起點放在該軸的 1 上：尾 <span class="mono">${coordStr(r.tail)}</span>。`:"從原點出發：尾 (0, 0, 0)。"}</li>
+   <li><b>頭＝尾＋分量：</b><span class="mono">${coordStr(r.head)}</span></li><li><b>反過來：</b>頭減尾 → 化成最小整數 → <b class="mono">${idx(r.uvw,"[]")}</b></li></ol>
+   ${D.eq?`<p class="note" style="margin-top:8px">⟨${idx(r.uvw.map(Math.abs).sort((a,b)=>b-a),["",""])}⟩ 共 ${famC(...r.uvw,false).length} 個方向（從晶胞中心畫出）。</p>`:""}`}
+
+function panelHex(){const X=S.hex;let h=`<div><p class="ph">單元</p>${seg_("hex.kind",[["plane","晶面 (hkil)"],["dir","晶向 [uvtw]"],["quiz","看圖練習"]])}</div>`;
+  if(X.kind==="plane"){const i=-(X.h+X.k);h+=`<div><div class="bigidx" id="bigidx">${idx([X.h,X.k,i,X.l],"()")}</div><div class="stps">${stepper("hex.h","h")+stepper("hex.k","k")}<div class="stp"><span class="sl">i</span><output class="sv auto" style="min-width:5.2em">${ib(i)}（自動）</output></div>${stepper("hex.l","l")}</div></div>
+    <div><p class="ph">常見晶面</p><div class="chips">${[[0,0,1],[1,0,0],[0,1,0],[-1,1,0],[1,1,0],[1,0,1],[1,0,2],[1,1,2],[2,-1,0]].map(v=>`<button class="chip" data-preset="hex" data-p="${v}">${idx([v[0],v[1],-(v[0]+v[1]),v[2]],"()")}</button>`).join("")}</div></div>
+    <div class="tgs"><p class="ph">顯示</p>${tg("hex.showInt","四個軸上的截距")}${tg("hex.eq","等效晶面族（看四指數的對稱性）")}${tg("hex.atoms","HCP 原子")}</div>`}
+  if(X.kind==="dir"){h+=`<div><p class="ph">輸入</p>${seg_("hex.din",[["3","三指數 [UVW]"],["4","四指數 [uvtw]"]])}</div>`;
+    if(X.din==="3")h+=`<div><div class="stps">${stepper("hex.U","U")+stepper("hex.V","V")+stepper("hex.W","W")}</div></div>`;
+    else{const t=-(X.u4+X.v4);h+=`<div><div class="stps">${stepper("hex.u4","u")+stepper("hex.v4","v")}<div class="stp"><span class="sl">t</span><output class="sv auto" style="min-width:5.2em">${ib(t)}（自動）</output></div>${stepper("hex.w4","w")}</div></div>`}
+    h+=`<div><div class="bigidx" id="bigidx"></div></div><div><p class="ph">常見晶向</p><div class="chips">${[[1,0,0],[0,1,0],[1,1,0],[-1,-1,0],[1,-1,0],[0,0,1],[1,1,1]].map(v=>`<button class="chip" data-preset="hexd" data-p="${v}">${idx(reduce([2*v[0]-v[1],2*v[1]-v[0],-(v[0]+v[1]),3*v[2]]),"[]")}</button>`).join("")}</div></div>
+    <div class="tgs"><p class="ph">顯示</p>${tg("hex.path3","三軸路徑：沿 a₁、a₂、c 走 U、V、W")}${tg("hex.path4","四軸路徑：沿 a₁、a₂、a₃、c 走 u、v、t、w")}</div>`}
+  if(X.kind==="quiz")h+=quizBox("hex");
+  h+=`<div class="steps" id="steps"></div>`;return h}
+function stepsHex(){const X=S.hex,el=$("steps");if(!el)return;
+  if(X.kind==="quiz"){el.innerHTML=`<b>怎麼讀：</b>先看晶面在 a₁、a₂、c 軸上的截距，取倒數得到 h、k、l，再用 i = −(h + k) 補上第三個指數。`;return}
+  if(X.kind==="plane"){const{h,k,l}=X,i=-(h+k);if(!h&&!k&&!l){el.innerHTML=`<div class="warn">h、k、l 不能全部是 0。</div>`;return}
+    el.innerHTML=`<ol><li><b>先讀 a₁、a₂、c 的截距：</b><span class="mono">${[h,k,l].map((m,j)=>m?aFrac(m,j===2?"c":"a"):"∞").join("、")}</span>，倒數就是 h = ${h}、k = ${k}、l = ${l}。</li>
+     <li><b>補上 i：</b>i = −(h + k) = −(${h} + ${k}) = ${i}。理由見「證明」分頁。</li>
+     <li><b>四指數：</b><b class="mono">${idx([h,k,i,l],"()")}</b>；三指數寫法是 <span class="mono">${idx([h,k,l],"()")}</span>。</li>
+     <li><b>檢查：</b>h + k + i = ${h} + ${k} + (${i}) = 0。</li></ol>${X.eq?`<p class="note" style="margin-top:8px">等效晶面共 ${famH(h,k,l).length} 組。注意它們的前三個指數都是同一組數字換位置，這就是使用四指數的好處。</p>`:""}`;return}
+  const d=hexDir();if(!d.U&&!d.V&&!d.W){el.innerHTML=`<div class="warn">指數不能全部是 0。</div>`;$("bigidx").innerHTML="";return}
+  const[U,V,W]=reduce([d.U,d.V,d.W]);const four=d.four;$("bigidx").innerHTML=`${idx([U,V,W],"[]")} <span style="color:var(--muted)">＝</span> ${idx(four,"[]")}`;
+  if(X.din==="3")el.innerHTML=`<ol><li><b>代公式：</b>u = (2U − V)/3 = ${fstr((2*U-V)/3)}，v = (2V − U)/3 = ${fstr((2*V-U)/3)}，t = −(u + v) = ${fstr(-(U+V)/3)}，w = W = ${W}</li>
+     <li><b>化成最小整數：</b><b class="mono">${idx(four,"[]")}</b></li><li><b>看圖確認：</b>藍色虛線（三軸）和綠色虛線（四軸）走不同的路，終點是同一點。</li></ol>`;
+  else{const[u,v,t,w]=[X.u4,X.v4,-(X.u4+X.v4),X.w4];el.innerHTML=`<ol><li><b>t 由 u、v 決定：</b>t = −(u + v) = ${t}</li><li><b>換回三指數：</b>U = u − t = ${u-t}，V = v − t = ${v-t}，W = w = ${w}</li><li><b>約分：</b><b class="mono">${idx([U,V,W],"[]")}</b>（四指數約分後：${idx(four,"[]")}）</li></ol>`}}
+
+/* ================= quiz ================= */
+const QPOOL={plane:[[1,0,0],[1,1,0],[1,1,1],[1,-1,0],[0,1,1],[1,0,1],[1,-1,1],[-1,1,1],[2,1,0],[1,2,0],[0,1,2],[1,0,2],[2,1,1],[1,1,2],[0,-1,1],[-1,0,2],[1,-1,2],[2,-1,0],[1,2,-1],[0,2,1],[1,-2,1]],
+  dir:[[1,0,0],[1,1,0],[1,1,1],[-1,1,0],[1,-1,1],[0,1,2],[2,1,0],[1,2,1],[-1,0,1],[2,-1,1],[0,-1,2],[1,1,2],[-2,1,1],[1,-2,0],[2,1,2],[-1,-1,1]],
+  hex:[[1,0,0],[0,1,0],[-1,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,-1,1],[2,-1,0],[1,0,2]]};
+function newQuiz(t){const pool=QPOOL[t];let q;do{q=pool[Math.floor(Math.random()*pool.length)]}while(S.quiz[t]&&q.join()===S.quiz[t].join()&&pool.length>1);S.quiz[t]=q;S.ans={h:0,k:0,l:0};S.qfb=""}
+function quizBox(t){if(!S.quiz[t])newQuiz(t);const br=t==="dir"?"[]":"()";const a=[S.ans.h,S.ans.k,S.ans.l];
+  const disp=t==="hex"?idx([a[0],a[1],-(a[0]+a[1]),a[2]],br):idx(a,br);
+  return `<div class="quiz"><b>${t==="plane"?"圖中晶面的米勒指數是？":t==="dir"?"圖中向量的晶向指數是？":"圖中晶面的四指數 (hkil) 是？"}</b>
+   <div class="bigidx">${disp}</div><div class="stps">${stepper("ans.h",t==="dir"?"u":"h")+stepper("ans.k",t==="dir"?"v":"k")+(t==="hex"?`<div class="stp"><span class="sl">i</span><output class="sv auto">${ib(-(a[0]+a[1]))}</output></div>`:"")+stepper("ans.l",t==="dir"?"w":"l")}</div>
+   <div class="qacts"><button class="b" data-q="check" data-t="${t}">檢查</button><button class="b ghost" data-q="show" data-t="${t}">看答案</button><button class="b ghost" data-q="next" data-t="${t}">下一題</button></div>
+   <div id="qfb">${S.qfb||""}</div>${scoreHTML()}</div>`}
+function checkQuiz(t){const q=S.quiz[t],a=[S.ans.h,S.ans.k,S.ans.l];const neg=q.map(x=>-x+0);let ok=a.join()===q.join()||(t!=="dir"&&a.join()===neg.join());
+  if(t==="hex"){const qa=[q[0],q[1],q[2]];ok=a.join()===qa.join()||a.join()===qa.map(x=>-x+0).join()}
+  score.n++;if(ok)score.ok++;saveScore();
+  const ansTxt=t==="hex"?idx([q[0],q[1],-(q[0]+q[1]),q[2]],"()"):idx(q,t==="dir"?"[]":"()");
+  S.qfb=ok?`<div class="fb ok"><b>答對了！</b>${t!=="dir"&&a.join()!==q.join()?`（我出題時畫的是 ${ansTxt}，和你的答案互相平行，一樣算對。）`:""}</div>`
+    :`<div class="fb no"><b>再想想。</b>${t==="dir"?"注意晶向有方向性，頭和尾不能顛倒。":"先找截距，再取倒數。"}可以按「看答案」對照。</div>`;renderPanel()}
+function showQuiz(t){const q=S.quiz[t];const ansTxt=t==="hex"?idx([q[0],q[1],-(q[0]+q[1]),q[2]],"()"):idx(q,t==="dir"?"[]":"()");
+  S.qfb=`<div class="fb ok"><b>答案：</b><span class="mono">${ansTxt}</span>${t==="plane"?"（三個指數全部變號也算對，代表平行的晶面）":""}</div>`;renderPanel();
+  if(t==="plane"){S.plane.h=q[0];S.plane.k=q[1];S.plane.l=q[2]}if(t==="dir"){S.dir.u=q[0];S.dir.v=q[1];S.dir.w=q[2]}}
+
+/* ================= panel wiring ================= */
+function renderPanel(){const p=$("panel");if(S.tab==="plane"){p.innerHTML=panelPlane();stepsPlane()}else if(S.tab==="dir"){p.innerHTML=panelDir();stepsDir()}else if(S.tab==="hex"){p.innerHTML=panelHex();stepsHex()}}
+$("panel").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.step){const k=b.dataset.step;setP(k,clamp(getP(k)+(+b.dataset.d),-6,6));renderPanel();rebuild();return}
+  if(b.dataset.set){setP(b.dataset.set,b.dataset.val);if(b.dataset.val==="quiz"){const t=b.dataset.set.split(".")[0];S.ans={h:0,k:0,l:0};S.qfb="";if(!S.quiz[t])newQuiz(t)}renderPanel();resetView(false);rebuild();return}
+  if(b.dataset.preset){const v=b.dataset.p.split(",").map(Number);const t=b.dataset.preset;
+    if(t==="plane")[S.plane.h,S.plane.k,S.plane.l]=v;if(t==="dir")[S.dir.u,S.dir.v,S.dir.w]=v;if(t==="hex")[S.hex.h,S.hex.k,S.hex.l]=v;
+    if(t==="hexd"){S.hex.din="3";[S.hex.U,S.hex.V,S.hex.W]=v}renderPanel();rebuild();return}
+  if(b.dataset.q){const t=b.dataset.t;if(b.dataset.q==="check")checkQuiz(t);if(b.dataset.q==="show")showQuiz(t);if(b.dataset.q==="next"){newQuiz(t);renderPanel();rebuild()}}});
+$("panel").addEventListener("change",e=>{const t=e.target;if(t.dataset.tg){setP(t.dataset.tg,t.checked);if(/ext$/.test(t.dataset.tg))resetView(true);
+  if(S.tab==="plane")stepsPlane();else if(S.tab==="dir")stepsDir();else stepsHex();rebuild()}
+  if(t.dataset.sel){setP(t.dataset.sel,t.value);rebuild()}});
+$("panel").addEventListener("input",e=>{const t=e.target;if(t.dataset.int!=null){S.plane.ints[+t.dataset.int]=t.value;stepsPlane();rebuild()}
+  if(t.dataset.pt){S.dir[t.dataset.pt][+t.dataset.i]=t.value;stepsDir();rebuild()}});
+
+/* ================= proof tab ================= */
+function proofHTML(){return `
+<h2>一、立方晶系：為什麼 [hkl] 垂直於 (hkl)</h2><p class="en">Cubic crystals: the direction [hkl] is normal to the plane (hkl)</p>
+<div class="pstep"><span class="n">1</span><div><span class="t">先寫出晶面上的三個點。</span><p>晶面 (hkl) 截三軸於 a/h、a/k、a/l，所以下面三點都在晶面上：</p><span class="eq">A = (a/h, 0, 0)　B = (0, a/k, 0)　C = (0, 0, a/l)</span></div></div>
+<div class="pstep"><span class="n">2</span><div><span class="t">在晶面上取兩個向量。</span><p>兩點相減就得到躺在晶面上的向量：</p><span class="eq">AB = (−a/h, a/k, 0)　AC = (−a/h, 0, a/l)</span></div></div>
+<div class="pstep"><span class="n">3</span><div><span class="t">和方向 [hkl] 做內積。</span><p>[hkl] 就是向量 (h, k, l)：</p><span class="eq">(h,k,l)·AB = −a + a + 0 = 0　(h,k,l)·AC = −a + 0 + a = 0</span></div></div>
+<div class="pstep"><span class="n">4</span><div><span class="t">下結論。</span><p>內積是 0 代表互相垂直。[hkl] 同時垂直於晶面上兩個不平行的向量，所以 [hkl] 垂直於整個晶面。指數有 0 時（晶面平行某軸），改取平行那個軸的向量，內積一樣是 0。這個關係只在立方晶系成立，因為三個軸等長又互相垂直。</p><a class="toolink" href="#plane" data-goto="plane" data-on="showNormal">在 3D 教具中打開「法向量」看看 →</a></div></div>
+
+<h2>二、面間距 d = a / √(h² + k² + l²)</h2><p class="en">Interplanar spacing in cubic crystals</p>
+<div class="pstep"><span class="n">1</span><div><span class="t">寫出晶面的方程式。</span><p>截距是 a/h、a/k、a/l 的平面，可以寫成截距式：</p><span class="eq">x/(a/h) + y/(a/k) + z/(a/l) = 1　→　hx + ky + lz = a</span></div></div>
+<div class="pstep"><span class="n">2</span><div><span class="t">找出相鄰的平行晶面。</span><p>同一族裡最靠近它、而且通過原點的平行面是：</p><span class="eq">hx + ky + lz = 0</span></div></div>
+<div class="pstep"><span class="n">3</span><div><span class="t">算兩個平面的距離。</span><p>原點到平面 hx + ky + lz = a 的距離，用點到平面距離公式：</p><span class="eq">d = |0 − a| / √(h² + k² + l²) = a / √(h² + k² + l²)</span></div></div>
+<div class="pstep"><span class="n">4</span><div><span class="t">代入例子。</span><p>(100)：d = a；(110)：d = a/√2 ≈ 0.707a；(111)：d = a/√3 ≈ 0.577a。指數越大，平面排得越密、間距越小。</p><a class="toolink" href="#plane" data-goto="plane" data-on="family">在 3D 教具中打開「平行晶面族」看看 →</a></div></div>
+
+<h2>三、米勒–布拉菲晶面：為什麼 i = −(h + k)</h2><p class="en">Miller–Bravais planes (hkil): proof that h + k + i = 0</p>
+<div class="pstep"><span class="n">1</span><div><span class="t">先找出三個底面軸的關係。</span><p>a₁、a₂、a₃ 等長、互成 120°。把三個向量頭尾相接，剛好繞一圈回到起點，所以：</p><span class="eq">a₁ + a₂ + a₃ = 0　→　a₃ = −(a₁ + a₂)</span></div></div>
+<div class="pstep"><span class="n">2</span><div><span class="t">看晶面和底面的交線。</span><p>晶面截 a₁ 於 a/h、截 a₂ 於 a/k，所以它和底面的交線通過這兩點。用 x、y 表示一個點在 a₁、a₂ 方向的分量（以 a 為單位），交線上的點都滿足截距式：</p><span class="eq">hx + ky = 1</span></div></div>
+<div class="pstep"><span class="n">3</span><div><span class="t">找交線和 a₃ 軸的交點。</span><p>a₃ 軸上的點可以寫成 s·a₃。把 a₃ 換成 −(a₁ + a₂)，這個點就是 x = −s、y = −s。代入交線方程式：</p><span class="eq">h(−s) + k(−s) = 1　→　s = −1/(h + k)</span></div></div>
+<div class="pstep"><span class="n">4</span><div><span class="t">取倒數得到 i。</span><p>i 的定義和 h、k 一樣，是 a₃ 方向截距的倒數：</p><span class="eq">i = 1/s = −(h + k)　→　h + k + i = 0</span></div></div>
+<div class="box pv"><b>自己動手驗證</b><p class="note">調整 h、k，看交線（橘線）和 a₃ 軸交在哪裡。這是從 c 軸往下看的底面。</p>
+ <div class="stps" style="margin:8px 0">${pstep("ph","h")}${pstep("pk","k")}</div><div id="hexsvg"></div><div class="readout" id="hexread"></div></div>
+
+<h2>四、米勒–布拉菲晶向：[UVW] 和 [uvtw] 怎麼換算</h2><p class="en">Converting three-index [UVW] to four-index [uvtw] directions</p>
+<div class="pstep"><span class="n">1</span><div><span class="t">把同一個向量寫成兩種形式。</span><p>三指數用 a₁、a₂、c 三個軸，四指數多用了 a₃：</p><span class="eq">R = U a₁ + V a₂ + W c = u a₁ + v a₂ + t a₃ + w c</span></div></div>
+<div class="pstep"><span class="n">2</span><div><span class="t">把 a₃ 換掉，比較係數。</span><p>代入 a₃ = −(a₁ + a₂)：</p><span class="eq">R = (u − t) a₁ + (v − t) a₂ + w c　→　U = u − t，V = v − t，W = w</span></div></div>
+<div class="pstep"><span class="n">3</span><div><span class="t">加一個條件，讓寫法只有一種。</span><p>因為 a₁ + a₂ + a₃ = 0，把 u、v、t 同時加上同一個數，向量完全不變，所以四個數裡有一個是多餘的。規定：</p><span class="eq">u + v + t = 0</span></div></div>
+<div class="pstep"><span class="n">4</span><div><span class="t">解聯立方程式。</span><p>把 t = −(u + v) 代入第 2 步：U = 2u + v，V = u + 2v。解出：</p><span class="eq">u = (2U − V)/3　v = (2V − U)/3　t = −(U + V)/3　w = W</span></div></div>
+<div class="pstep"><span class="n">5</span><div><span class="t">化成最小整數。</span><p>例：[100] → u = 2/3、v = −1/3、t = −1/3、w = 0 → 乘以 3 → [2<span class="ob">1</span><span class="ob">1</span>0]。</p><a class="toolink" href="#hex" data-goto="hexdir">在 3D 教具中看三軸、四軸兩條路徑走到同一點 →</a></div></div>
+<div class="box"><b>換算練習</b><p class="note">調整 U、V、W，看每一步的計算。</p><div class="stps" style="margin:8px 0">${pstep("pU","U")}${pstep("pV","V")}${pstep("pW","W")}</div><div class="readout" id="convread"></div></div>
+
+<h2>五、為什麼要多用一個指數？</h2><p class="en">Why four indices: equivalent planes and directions look alike</p>
+<p>六方柱的六個側面（柱面）原子排列完全一樣。用三指數寫，它們看起來不像同一族；用四指數寫，只是同一組數字換位置。</p>
+<div class="tbl"><table class="cmp"><thead><tr><th>柱面</th><th>三指數 (hkl)</th><th>四指數 (hkil)</th></tr></thead><tbody>
+${[[1,0,0],[0,1,0],[-1,1,0]].map((v,j)=>`<tr><td>第 ${j+1} 組</td><td>${idx(v,"()")}</td><td>${idx([v[0],v[1],-(v[0]+v[1]),v[2]],"()")}</td></tr>`).join("")}</tbody></table></div>
+<div class="tbl" style="margin-top:12px"><table class="cmp"><thead><tr><th>底面上的等效晶向</th><th>三指數 [UVW]</th><th>四指數 [uvtw]</th></tr></thead><tbody>
+${[[1,0,0],[0,1,0],[-1,-1,0]].map((v,j)=>`<tr><td>a${"₁₂₃"[j]} 方向</td><td>${idx(v,"[]")}</td><td>${idx(reduce([2*v[0]-v[1],2*v[1]-v[0],-(v[0]+v[1]),3*v[2]]),"[]")}</td></tr>`).join("")}</tbody></table></div>
+<p class="note" style="margin-top:8px">三指數的 (100) 和 (<span class="ob">1</span>10) 看不出是同一族；四指數 (10<span class="ob">1</span>0)、(01<span class="ob">1</span>0)、(<span class="ob">1</span>100) 一看就知道。</p>
+
+<h2>觀念檢查</h2>
+${mcq("q1","六方晶面 (1 1 ? 0) 的第三個指數 i 是多少？",["−2","2","0","−1"],0,"i = −(h + k) = −(1 + 1) = −2，寫成 (11<span class='ob'>2</span>0)。")}
+${mcq("q2","三指數晶向 [010] 換成四指數是？",["[0<span class='ob'>1</span>10]","[<span class='ob'>1</span>2<span class='ob'>1</span>0]","[0100]","[12<span class='ob'>1</span>0]"],1,"u = (0 − 1)/3 = −1/3，v = (2 − 0)/3 = 2/3，t = −1/3，w = 0，乘以 3 得 [<span class='ob'>1</span>2<span class='ob'>1</span>0]。")}
+${mcq("q3","立方晶系中 (110) 的面間距是？",["a/2","a/√2","√2 a","a/√3"],1,"d = a/√(1² + 1² + 0²) = a/√2。")}`}
+const PS={ph:1,pk:0,pU:1,pV:0,pW:0};
+const pstep=(k,l)=>`<div class="stp"><span class="sl">${l}</span><button class="sb" data-ps="${k}" data-d="-1" aria-label="${l} 減一">−</button><output class="sv" id="o-${k}">${ib(PS[k])}</output><button class="sb" data-ps="${k}" data-d="1" aria-label="${l} 加一">＋</button></div>`;
+const mcq=(id,q,opts,a,e)=>`<div class="box" data-mcq="${id}" data-a="${a}"><b>${q}</b><div class="mcq">${opts.map((o,i)=>`<label class="opt"><input type="radio" name="${id}" value="${i}"> ${o}</label>`).join("")}</div><div class="mexp" hidden><p class="note" style="margin-top:8px">${e}</p></div></div>`;
+function hexProofSVG(h,k){const cx=210,cy=180,s=88;const a1=[-.5,.866],a2=[1,0],a3=[-.5,-.866];const P=(x,y)=>[cx+s*(x*a1[0]+y*a2[0]),cy+s*(x*a1[1]+y*a2[1])];
+  const f=n=>n.toFixed(1);let g="";const hv=HEXV.map(([x,y])=>P(x,y));g+=`<polygon points="${hv.map(p=>p.map(f).join(",")).join(" ")}" fill="var(--steel-soft)" stroke="var(--line)"/>`;
+  [[a1,"a₁"],[a2,"a₂"],[a3,"a₃"]].forEach(([a,n])=>{const e=[cx+s*1.7*a[0],cy+s*1.7*a[1]],ne=[cx-s*1.7*a[0],cy-s*1.7*a[1]];
+    g+=`<line x1="${f(ne[0])}" y1="${f(ne[1])}" x2="${cx}" y2="${cy}" stroke="var(--muted)" stroke-dasharray="3 4"/><line x1="${cx}" y1="${cy}" x2="${f(e[0])}" y2="${f(e[1])}" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#pa)"/><text x="${f(e[0]+a[0]*14)}" y="${f(e[1]+a[1]*14+4)}" text-anchor="middle" style="font-weight:600">${n}</text>`});
+  if(h||k){let p1,p2;if(k!==0){p1=P(-5,(1+5*h)/k);p2=P(5,(1-5*h)/k)}else{p1=P(1/h,-5);p2=P(1/h,5)}g+=`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="var(--accent)" stroke-width="2.5"/>`}
+  const dot=(x,y,t,dy)=>{const p=P(x,y);if(Math.abs(p[0]-cx)>200||Math.abs(p[1]-cy)>175)return"";return`<circle cx="${f(p[0])}" cy="${f(p[1])}" r="5" fill="var(--accent)"/><text x="${f(p[0]+8)}" y="${f(p[1]+dy)}" style="fill:var(--accent);font-weight:600">${t}</text>`};
+  const i=-(h+k);if(h)g+=dot(1/h,0,"a₁："+aFrac(h),16);if(k)g+=dot(0,1/k,"a₂："+aFrac(k),-8);if(i)g+=dot(-1/i,-1/i,"a₃："+aFrac(i),-8);
+  g+=`<circle cx="${cx}" cy="${cy}" r="3" fill="var(--ink)"/><text x="${cx-14}" y="${cy+16}" style="fill:var(--muted)">O</text>`;
+  return`<svg viewBox="0 0 420 360" role="img" aria-label="六方底面上的 a1、a2、a3 軸與晶面交線"><defs><clipPath id="pcl"><rect x="0" y="0" width="420" height="360"/></clipPath><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs><g clip-path="url(#pcl)">${g}</g></svg>`}
+function updProof(){const h=PS.ph,k=PS.pk,i=-(h+k);if(!$("hexsvg"))return;$("hexsvg").innerHTML=hexProofSVG(h,k);
+  $("hexread").innerHTML=!h&&!k?`h、k 都是 0：晶面和底面平行（例如 (0001)），沒有交線。`:
+   `交線方程式：${h}x + ${k}y = 1<br>a₃ 軸上的點 x = y = −s 代入：−(${h} + ${k})s = 1 → s = ${h+k?fstr(-1/(h+k)):"∞（交線和 a₃ 平行）"}<br><b>i = −(h + k) = ${i}</b>，晶面寫成 <span class="mono" style="color:var(--accent);font-weight:600">${idx([h,k,i,"l"].map(v=>v),"()").replace(">l<",">l<")}</span>`;
+  const U=PS.pU,V=PS.pV,W=PS.pW;if(!U&&!V&&!W){$("convread").innerHTML="U、V、W 不能全部是 0。";}else{const four=reduce([2*U-V,2*V-U,-(U+V),3*W]);
+  $("convread").innerHTML=`<span class="mono">${idx([U,V,W],"[]")}</span><br>u = (2U − V)/3 = (${2*U} − ${V})/3 = ${fstr((2*U-V)/3)}<br>v = (2V − U)/3 = (${2*V} − ${U})/3 = ${fstr((2*V-U)/3)}<br>t = −(U + V)/3 = ${fstr(-(U+V)/3)}<br>w = W = ${W}<br>化成最小整數 → <b class="mono" style="color:var(--accent)">${idx(four,"[]")}</b>　（檢查：u + v + t = ${four[0]} + ${four[1]} + (${four[2]}) = 0）`}
+  ["ph","pk","pU","pV","pW"].forEach(k=>{const o=$("o-"+k);if(o)o.innerHTML=ib(PS[k])})}
+$("proof").addEventListener("click",e=>{const b=e.target.closest("[data-ps]");if(b){const k=b.dataset.ps;PS[k]=clamp(PS[k]+(+b.dataset.d),-4,4);updProof();return}
+  const a=e.target.closest("[data-goto]");if(a){e.preventDefault();const g=a.dataset.goto;if(g==="hexdir"){S.hex.kind="dir";S.hex.din="3";S.hex.U=1;S.hex.V=0;S.hex.W=0;S.hex.path3=S.hex.path4=true;setTab("hex")}else{S.plane.mode="idx";if(a.dataset.on)S.plane[a.dataset.on]=true;setTab(g)}window.scrollTo({top:0,behavior:reduceMotion?"auto":"smooth"})}});
+$("proof").addEventListener("change",e=>{const r=e.target;if(r.type!=="radio")return;const box=r.closest("[data-mcq]");const ok=+r.value===+box.dataset.a;
+  box.querySelectorAll(".opt").forEach((o,i)=>{o.classList.remove("right","wrong");if(i===+r.value)o.classList.add(ok?"right":"wrong")});box.querySelector(".mexp").hidden=false});
+
+/* ================= tabs ================= */
+function setTab(t){S.tab=t;try{history.replaceState(null,"","#"+t)}catch(e){}
+  document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+  const proof=t==="proof";$("stage").hidden=proof;$("proof").hidden=!proof;stopAuto();
+  if(proof){if(!$("proof").innerHTML)$("proof").innerHTML=proofHTML();updProof();return}
+  renderPanel();syncVtools();if(renderer){resize();resetView(false);rebuild()}}
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.tab!=="proof")rebuild()});
+
+init3D();
+{const h=(location.hash||"").slice(1);setTab(["plane","dir","hex","proof"].includes(h)?h:"plane")}
+</script>
+</body>
+</html>
