@@ -375,7 +375,7 @@ function buildHex(){const X=S.hex,quiz=X.kind==="quiz";
   if(res&&!quiz)lab(res.c,idx([h,k,i,l],"()"),"ac big")}
 
 /* ================= views ================= */
-function defaultView(){if(S.tab==="hex"){view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}
+function defaultView(){if(S.tab==="hex"){if(S.hex.kind==="dir"){view.target=new THREE.Vector3(0,CH*.3,0);return[.3,.62,5.4]}view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}
   const n=(S.tab==="plane"?S.plane.ext:S.dir.ext)&&S[S.tab].mode!=="quiz"?2:1;view.target=V(n/2,n/2,n/2);return[.49,1.23,n===2?7:4.4]}
 function resetView(anim){const[t,p,r]=defaultView();if(anim)tweenTo(t,p,r);else{view.theta=t;view.phi=p;view.r=r;render()}}
 function syncVtools(){const vt=$("vtools");if(!vt)return;const btn=(id,txt,pr)=>`<button class="vbtn" data-v="${id}"${pr!=null?` aria-pressed="${pr}"`:""}>${txt}</button>`;
@@ -459,10 +459,10 @@ function panelHex(){const X=S.hex;let h=`<div><p class="ph">單元</p>${seg_("he
 function stepsHex(){const X=S.hex,el=$("steps");if(!el)return;
   if(X.kind==="quiz"){el.innerHTML=`<b>怎麼讀：</b>先看晶面在 a₁、a₂、c 軸上的截距，取倒數得到 h、k、l，再用 i = −(h + k) 補上第三個指數。`;return}
   if(X.kind==="plane"){const{h,k,l}=X,i=-(h+k);if(!h&&!k&&!l){el.innerHTML=`<div class="warn">h、k、l 不能全部是 0。</div>`;return}
-    el.innerHTML=`<ol><li><b>先讀 a₁、a₂、c 的截距：</b><span class="mono">${[h,k,l].map((m,j)=>m?aFrac(m,j===2?"c":"a"):"∞").join("、")}</span>，倒數就是 h = ${h}、k = ${k}、l = ${l}。</li>
-     <li><b>補上 i：</b>i = −(h + k) = −(${h} + ${k}) = ${i}。理由見「證明」分頁。</li>
+    el.innerHTML=`<ol><li><b>先讀 a₁、a₂、c 的截距：</b><span class="mono">${[h,k,l].map((m,j)=>m?aFrac(m,j===2?"c":"a"):"∞").join("、")}</span>，倒數就是 h = ${fstr(h)}、k = ${fstr(k)}、l = ${fstr(l)}。</li>
+     <li><b>補上 i：</b>i = −(h + k) = −(${fstr(h)} + ${fstr(k)}) = ${fstr(i)}。理由見「證明」分頁。</li>
      <li><b>四指數：</b><b class="mono">${idx([h,k,i,l],"()")}</b>；三指數寫法是 <span class="mono">${idx([h,k,l],"()")}</span>。</li>
-     <li><b>檢查：</b>h + k + i = ${h} + ${k} + (${i}) = 0。</li></ol>${X.eq?`<p class="note" style="margin-top:8px">等效晶面共 ${famH(h,k,l).length} 組。注意它們的前三個指數都是同一組數字換位置，這就是使用四指數的好處。</p>`:""}`;return}
+     <li><b>檢查：</b>h + k + i = ${fstr(h)} + ${fstr(k)} + (${fstr(i)}) = 0。</li></ol>${X.eq?`<p class="note" style="margin-top:8px">等效晶面共 ${famH(h,k,l).length} 組。注意它們的前三個指數都是同一組數字換位置，這就是使用四指數的好處。</p>`:""}`;return}
   const d=hexDir();if(!d.U&&!d.V&&!d.W){el.innerHTML=`<div class="warn">指數不能全部是 0。</div>`;$("bigidx").innerHTML="";return}
   const[U,V,W]=reduce([d.U,d.V,d.W]);const four=d.four;$("bigidx").innerHTML=`${idx([U,V,W],"[]")} <span style="color:var(--muted)">＝</span> ${idx(four,"[]")}`;
   if(X.din==="3")el.innerHTML=`<ol><li><b>代公式：</b>u = (2U − V)/3 = ${fstr((2*U-V)/3)}，v = (2V − U)/3 = ${fstr((2*V-U)/3)}，t = −(u + v) = ${fstr(-(U+V)/3)}，w = W = ${W}</li>
@@ -561,9 +561,9 @@ function hexProofSVG(h,k){const cx=210,cy=180,s=88;const a1=[-.5,.866],a2=[1,0],
   return`<svg viewBox="0 0 420 360" role="img" aria-label="六方底面上的 a1、a2、a3 軸與晶面交線"><defs><clipPath id="pcl"><rect x="0" y="0" width="420" height="360"/></clipPath><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs><g clip-path="url(#pcl)">${g}</g></svg>`}
 function updProof(){const h=PS.ph,k=PS.pk,i=-(h+k);if(!$("hexsvg"))return;$("hexsvg").innerHTML=hexProofSVG(h,k);
   $("hexread").innerHTML=!h&&!k?`h、k 都是 0：晶面和底面平行（例如 (0001)），沒有交線。`:
-   `交線方程式：${h}x + ${k}y = 1<br>a₃ 軸上的點 x = y = −s 代入：−(${h} + ${k})s = 1 → s = ${h+k?fstr(-1/(h+k)):"∞（交線和 a₃ 平行）"}<br><b>i = −(h + k) = ${i}</b>，晶面寫成 <span class="mono" style="color:var(--accent);font-weight:600">${idx([h,k,i,"l"].map(v=>v),"()").replace(">l<",">l<")}</span>`;
+   `交線方程式：${fstr(h)}x + ${fstr(k)}y = 1<br>a₃ 軸上的點 x = y = −s 代入：−(${fstr(h)} + ${fstr(k)})s = 1 → s = ${h+k?fstr(-1/(h+k)):"∞（交線和 a₃ 平行）"}<br><b>i = −(h + k) = ${fstr(i)}</b>，晶面寫成 <span class="mono" style="color:var(--accent);font-weight:600">(${ib(h)}&thinsp;${ib(k)}&thinsp;${ib(i)}&thinsp;<i>l</i>)</span>　（l 由 c 軸截距決定，不影響 i）`;
   const U=PS.pU,V=PS.pV,W=PS.pW;if(!U&&!V&&!W){$("convread").innerHTML="U、V、W 不能全部是 0。";}else{const four=reduce([2*U-V,2*V-U,-(U+V),3*W]);
-  $("convread").innerHTML=`<span class="mono">${idx([U,V,W],"[]")}</span><br>u = (2U − V)/3 = (${2*U} − ${V})/3 = ${fstr((2*U-V)/3)}<br>v = (2V − U)/3 = (${2*V} − ${U})/3 = ${fstr((2*V-U)/3)}<br>t = −(U + V)/3 = ${fstr(-(U+V)/3)}<br>w = W = ${W}<br>化成最小整數 → <b class="mono" style="color:var(--accent)">${idx(four,"[]")}</b>　（檢查：u + v + t = ${four[0]} + ${four[1]} + (${four[2]}) = 0）`}
+  $("convread").innerHTML=`<span class="mono">${idx([U,V,W],"[]")}</span><br>u = (2U − V)/3 = (${2*U} − ${V})/3 = ${fstr((2*U-V)/3)}<br>v = (2V − U)/3 = (${2*V} − ${U})/3 = ${fstr((2*V-U)/3)}<br>t = −(U + V)/3 = ${fstr(-(U+V)/3)}<br>w = W = ${W}<br>化成最小整數 → <b class="mono" style="color:var(--accent)">${idx(four,"[]")}</b>　（檢查：u + v + t = ${fstr(four[0])} + ${fstr(four[1])} + (${fstr(four[2])}) = 0）`}
   ["ph","pk","pU","pV","pW"].forEach(k=>{const o=$("o-"+k);if(o)o.innerHTML=ib(PS[k])})}
 $("proof").addEventListener("click",e=>{const b=e.target.closest("[data-ps]");if(b){const k=b.dataset.ps;PS[k]=clamp(PS[k]+(+b.dataset.d),-4,4);updProof();return}
   const a=e.target.closest("[data-goto]");if(a){e.preventDefault();const g=a.dataset.goto;if(g==="hexdir"){S.hex.kind="dir";S.hex.din="3";S.hex.U=1;S.hex.V=0;S.hex.W=0;S.hex.path3=S.hex.path4=true;setTab("hex")}else{S.plane.mode="idx";if(a.dataset.on)S.plane[a.dataset.on]=true;setTab(g)}window.scrollTo({top:0,behavior:reduceMotion?"auto":"smooth"})}});

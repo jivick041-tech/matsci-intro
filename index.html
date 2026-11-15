@@ -254,6 +254,11 @@ body{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 .overlay h3{font-family:var(--f-display);font-size:1.3rem;margin:4px 0 6px}
 .overlay .row input{width:100%;max-width:240px}
 .remind{margin-top:18px;padding:14px 16px;background:var(--accent-soft);border-left:3px solid var(--accent);max-width:72ch;font-size:.93rem}
+.toolrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:10px 14px;background:var(--accent-soft);border-left:3px solid var(--accent)}
+.tooltxt{font-size:.88rem;font-weight:600}
+a.toolbtn{font-size:.86rem;font-weight:500;padding:4px 12px;border:1.5px solid var(--accent);color:var(--accent);background:var(--paper);text-decoration:none}
+a.toolbtn:hover{background:var(--accent);color:var(--paper)}
+a.toolbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:40px;padding-top:16px;border-top:1px solid var(--line)}
 .reset{font:inherit;font-size:.85rem;background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
 .confirm{font-size:.85rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -1276,6 +1281,7 @@ const PR3=[
 ];
 CH2.practice=PR2;CH3.practice=PR3;
 
+[["3-E","miller.html#dir","晶向 3D 互動教具"],["3-F","miller.html#plane","晶面 3D 互動教具"],["3-G","miller.html#hex","六方晶系 3D 教具"],["3-G","miller.html#proof","米勒–布拉菲證明"],["3-H","miller.html#plane","在 3D 教具看晶面上的原子"]].forEach(([c,h,t])=>{const z=CH3.zones.find(z=>z.code===c);if(z)(z.tools=z.tools||[]).push([h,t])});
 const CHAPTERS=[CH2,CH3];
 
 /* ================= State & helpers ================= */
@@ -1394,7 +1400,7 @@ function render(ci){
     h+=`<section class="zone" id="sec-z${zi}"><div class="zh"><span class="code">${z.code}</span><h4>${z.title}</h4><span class="ref">課本 ${z.ref}</span><span class="zsc" id="zs-${zi}"></span></div>
      <p class="zen">${z.en}</p>
      <div class="lab-h">本區名詞</div><div class="zterms">${z.terms.map(t=>`<div class="zt"><span class="te">${t}</span><span class="tz">${ch.termsMap[t][0]}</span><p>${ch.termsMap[t][1]}</p></div>`).join("")}</div>
-     <div class="lab-h">圖解</div><figure class="fig"><div class="figbox">${FIG[z.fig]()}</div><figcaption><b>圖 ${z.code}</b>${z.cap}</figcaption></figure>
+     <div class="lab-h">圖解</div><figure class="fig"><div class="figbox">${FIG[z.fig]()}</div><figcaption><b>圖 ${z.code}</b>${z.cap}</figcaption></figure>${z.tools?`<div class="toolrow"><span class="tooltxt">動手轉轉看：</span>${z.tools.map(([h,t])=>`<a class="toolbtn" href="${h}" target="_blank" rel="noopener">${t} ↗</a>`).join("")}</div>`:""}
      <div class="lab-h">重點整理</div><div class="points">${z.points.map(([t,p])=>`<div class="pt"><h5>${t}</h5><p>${p}</p></div>`).join("")}</div>
      ${z.formulas?`<div class="lab-h">重要公式</div><div class="formulas">${z.formulas.map(([e,w])=>`<div class="fx"><div class="eq">${e}</div><div class="what">${w}</div></div>`).join("")}</div>`:""}
      ${z.table?`<div class="lab-h">${z.table.cap||"整理表"}</div><div class="tscroll"><table class="data"><thead><tr>${z.table.h.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${z.table.r.map(r=>`<tr>${r.map((x,i)=>i?`<td>${x}</td>`:`<th scope="row">${x}</th>`).join("")}</tr>`).join("")}</tbody></table></div>`:""}
