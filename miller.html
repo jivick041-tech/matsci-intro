@@ -107,6 +107,15 @@ select,.tin{font:inherit;font-size:.92rem;padding:4px 8px;border:1.5px solid var
 .fb.no{background:var(--bad-soft);border-left:3px solid var(--bad)}
 .score{font-family:var(--f-mono);font-size:.82rem;color:var(--muted)}
 
+.pchip{all:unset;cursor:pointer;font-size:.86rem;padding:3px 12px;border:1.5px solid var(--line);background:var(--bg)}
+.pchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.pchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pbar{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:.82rem;color:var(--muted);margin-bottom:-8px}
+.pprog{height:4px;background:var(--line)}.pprog i{display:block;height:100%;background:var(--accent)}
+.qtag{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);padding:0 8px;width:max-content}
+.numrow{display:flex;align-items:center;gap:8px;font-family:var(--f-mono)}
+.numrow .tin{width:9em;font-size:1.05rem}
+.steps .toolink{margin-top:10px}
 /* proof */
 .proof{max-width:780px}
 .proof h2{font-family:var(--f-display);font-weight:900;font-size:1.35rem;margin:34px 0 4px;text-wrap:balance}
@@ -152,6 +161,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
     <button role="tab" data-tab="plane">晶面 (hkl)</button>
     <button role="tab" data-tab="dir">晶向 [uvw]</button>
     <button role="tab" data-tab="hex">六方 米勒–布拉菲</button>
+    <button role="tab" data-tab="practice">綜合練習</button>
     <button role="tab" data-tab="proof">證明</button>
   </nav>
 
@@ -375,7 +385,8 @@ function buildHex(){const X=S.hex,quiz=X.kind==="quiz";
   if(res&&!quiz)lab(res.c,idx([h,k,i,l],"()"),"ac big")}
 
 /* ================= views ================= */
-function defaultView(){if(S.tab==="hex"){if(S.hex.kind==="dir"){view.target=new THREE.Vector3(0,CH*.3,0);return[.3,.62,5.4]}view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}
+function defaultView(){if(S.tab==="practice"){const v=PR.q&&PR.q.view;if(v==="hexdir"){view.target=new THREE.Vector3(0,CH*.3,0);return[.3,.62,5.4]}if(v==="hex"){view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}view.target=V(.5,.5,.5);return[.49,1.23,4.4]}
+  if(S.tab==="hex"){if(S.hex.kind==="dir"){view.target=new THREE.Vector3(0,CH*.3,0);return[.3,.62,5.4]}view.target=new THREE.Vector3(0,CH/2,0);return[.35,1.17,6.4]}
   const n=(S.tab==="plane"?S.plane.ext:S.dir.ext)&&S[S.tab].mode!=="quiz"?2:1;view.target=V(n/2,n/2,n/2);return[.49,1.23,n===2?7:4.4]}
 function resetView(anim){const[t,p,r]=defaultView();if(anim)tweenTo(t,p,r);else{view.theta=t;view.phi=p;view.r=r;render()}}
 function syncVtools(){const vt=$("vtools");if(!vt)return;const btn=(id,txt,pr)=>`<button class="vbtn" data-v="${id}"${pr!=null?` aria-pressed="${pr}"`:""}>${txt}</button>`;
@@ -391,7 +402,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b
   if(v==="along"){const r=dirData();if(r.ok)lookAlong(V(...r.uvw))}
   if(v==="top")tweenTo(0,.03,6.4);if(v==="sidehex")tweenTo(.0,Math.PI/2,6.4)});
 
-function rebuild(){if(!renderer)return;readColors();clear();if(S.tab==="plane")buildPlane();else if(S.tab==="dir")buildDir();else if(S.tab==="hex")buildHex();flushLabels();render()}
+function rebuild(){if(!renderer)return;readColors();clear();if(S.tab==="plane")buildPlane();else if(S.tab==="dir")buildDir();else if(S.tab==="hex")buildHex();else if(S.tab==="practice")buildPractice();flushLabels();render()}
 
 /* ================= panels ================= */
 const stepper=(key,lab_)=>`<div class="stp"><span class="sl">${lab_}</span><button class="sb" data-step="${key}" data-d="-1" aria-label="${lab_} 減一">−</button><output class="sv">${ib(getP(key))}</output><button class="sb" data-step="${key}" data-d="1" aria-label="${lab_} 加一">＋</button></div>`;
@@ -491,7 +502,7 @@ function showQuiz(t){const q=S.quiz[t];const ansTxt=t==="hex"?idx([q[0],q[1],-(q
   if(t==="plane"){S.plane.h=q[0];S.plane.k=q[1];S.plane.l=q[2]}if(t==="dir"){S.dir.u=q[0];S.dir.v=q[1];S.dir.w=q[2]}}
 
 /* ================= panel wiring ================= */
-function renderPanel(){const p=$("panel");if(S.tab==="plane"){p.innerHTML=panelPlane();stepsPlane()}else if(S.tab==="dir"){p.innerHTML=panelDir();stepsDir()}else if(S.tab==="hex"){p.innerHTML=panelHex();stepsHex()}}
+function renderPanel(){const p=$("panel");if(S.tab==="plane"){p.innerHTML=panelPlane();stepsPlane()}else if(S.tab==="dir"){p.innerHTML=panelDir();stepsDir()}else if(S.tab==="hex"){p.innerHTML=panelHex();stepsHex()}else if(S.tab==="practice")p.innerHTML=panelPractice()}
 $("panel").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   if(b.dataset.step){const k=b.dataset.step;setP(k,clamp(getP(k)+(+b.dataset.d),-6,6));renderPanel();rebuild();return}
   if(b.dataset.set){setP(b.dataset.set,b.dataset.val);if(b.dataset.val==="quiz"){const t=b.dataset.set.split(".")[0];S.ans={h:0,k:0,l:0};S.qfb="";if(!S.quiz[t])newQuiz(t)}renderPanel();resetView(false);rebuild();return}
@@ -570,6 +581,255 @@ $("proof").addEventListener("click",e=>{const b=e.target.closest("[data-ps]");if
 $("proof").addEventListener("change",e=>{const r=e.target;if(r.type!=="radio")return;const box=r.closest("[data-mcq]");const ok=+r.value===+box.dataset.a;
   box.querySelectorAll(".opt").forEach((o,i)=>{o.classList.remove("right","wrong");if(i===+r.value)o.classList.add(ok?"right":"wrong")});box.querySelector(".mexp").hidden=false});
 
+/* ================= practice (綜合練習) ================= */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const same=(a,b)=>a.join()===b.join();
+const negv=a=>a.map(x=>-x+0);
+const dot3=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const crossZero=(a,b)=>a[1]*b[2]-a[2]*b[1]===0&&a[2]*b[0]-a[0]*b[2]===0&&a[0]*b[1]-a[1]*b[0]===0;
+function parseNum(s){s=String(s).trim().replace(/[−–—]/g,"-").replace(/\s/g,"");if(!s)return NaN;
+  const m=s.match(/^([+-]?\d*\.?\d+)\/([+-]?\d*\.?\d+)$/);if(m)return +m[2]?(+m[1])/(+m[2]):NaN;
+  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)?parseFloat(s):NaN}
+const sq=n=>Number.isInteger(Math.sqrt(n))?String(Math.sqrt(n)):"√"+n;
+const STR={sc:"簡單立方 SC",bcc:"體心立方 BCC",fcc:"面心立方 FCC"};
+/* run one of the existing scene builders with temporary settings */
+function withS(key,over,quizVal,fn){const old=S[key],oq=S.quiz[key];S[key]=Object.assign(JSON.parse(JSON.stringify(old)),over);if(quizVal!==undefined)S.quiz[key]=quizVal;
+  try{fn()}finally{S[key]=old;S.quiz[key]=oq}}
+const hideAns=()=>{labels=labels.filter(l=>l.cls!=="ac big")};
+const PLANE0={h:1,k:1,l:1,mode:"idx",ints:["1","1","1"],showInt:false,showNormal:false,ext:false,family:false,eq:false,atoms:"none"};
+const DIR0={u:1,v:0,w:0,mode:"idx",tail:["0","0","0"],head:["1","0","0"],showPath:false,ext:false,eq:false,showPlane:false,atoms:"none",corner:false};
+const HEX0={kind:"plane",h:1,k:0,l:0,din:"3",U:1,V:0,W:0,u4:2,v4:-1,w4:0,showInt:false,path3:false,path4:false,eq:false,atoms:false};
+function sceneDirFrom(c,v,color,label){const m=Math.sqrt(dot3(v,v));const e=c.map((x,i)=>x+v[i]*.55/m);arrow(V(...c),V(...e),color,.016);lab(V(...e),label,color===COL.accent?"ac":"st",0,-14)}
+
+/* plane-solution steps, for a plane drawn the way the tool draws it */
+function planeSteps(hkl){const[h,k,l]=hkl;const o=[h<0?1:0,k<0?1:0,l<0?1:0];const sh=o.some(v=>v);
+  const ic=hkl.map((m,i)=>"xyz"[i]+"："+(m?aFrac(m):"∞（平行此軸）")).join("　");
+  return`<ol>${sh?`<li><b>移原點：</b>有負號，把原點移到 O′ = ${coordStr(o)}，截距從 O′ 量起。</li>`:""}
+   <li><b>讀截距：</b>${ic}</li><li><b>取倒數：</b>${hkl.map(m=>fstr(m)).join("、")}（∞ 的倒數是 0）</li>
+   <li><b>寫成米勒指數：</b><b class="mono">${idx(hkl,"()")}</b>（全部變號的 ${idx(negv(hkl),"()")} 是同一組平行晶面，也算對）</li></ol>`}
+
+const GEN={
+ planePic(){const q=pick(QPOOL.plane);return{cat:"plane",title:"看圖寫晶面",view:"cubic",
+  prompt:"圖中橘色晶面的米勒指數是？晶胞邊上的小點是 1/2 的位置，可以旋轉看清楚。",
+  input:{kind:"idx",labels:["h","k","l"],br:"()"},check:a=>({ok:same(a,q)||same(a,negv(q))}),
+  hint:"先看晶面和三個軸交在哪裡；平行某軸時那個指數是 0。",sol:()=>planeSteps(q),
+  scene:rev=>withS("plane",Object.assign({},PLANE0,{h:q[0],k:q[1],l:q[2],mode:rev?"idx":"quiz",showInt:rev}),q,buildPlane),
+  go:()=>{Object.assign(S.plane,{mode:"idx",h:q[0],k:q[1],l:q[2],showInt:true});setTab("plane")}}},
+
+ planeInt(){const INTS=["1","1/2","1/3","-1","-1/2","∞"];let ints,r;
+  do{ints=[pick(INTS),pick(INTS),pick(INTS)];r=intsToHKL(ints)}while(!r.ok||ints.filter(x=>x==="∞").length>1&&Math.random()<.6);
+  const ans=r.hkl,raw=r.raw,neg=ints.some(x=>x[0]==="-");const g=raw.reduce((s,v)=>gcd(s,v),0);
+  const show=s=>s==="∞"?"∞":s.replace("-","−")+" a";
+  return{cat:"plane",title:"截距 → 米勒指數",view:"cubic",
+  prompt:`某晶面在 x、y、z 軸上的截距分別是 <span class="mono">${ints.map(show).join("、")}</span>。它的米勒指數是？${neg?"（負截距從圖中藍點 O′ 量起）":""}`,
+  input:{kind:"idx",labels:["h","k","l"],br:"()"},check:a=>({ok:same(a,ans)||same(a,negv(ans))}),
+  hint:"截距取倒數（∞ 的倒數是 0），再化成最小整數。",
+  sol:()=>`<ol><li><b>截距（以 a 為單位）：</b>${ints.map(s=>s.replace("-","−")).join("、")}</li><li><b>取倒數：</b>${raw.map(v=>fstr(v)).join("、")}</li>
+   <li><b>化成最小整數：</b>${g>1?`三個數有公因數 ${g}，約分後`:"已經是最小整數"} → <b class="mono">${idx(ans,"()")}</b></li></ol>${g>1?`<p class="note">圖中畫的是 ${idx(raw,"()")} 這一片（截距照題目）。它和 ${idx(ans,"()")} 平行，所以指數相同。</p>`:""}`,
+  scene:rev=>{withS("plane",Object.assign({},PLANE0,{mode:"int",ints,showInt:true}),undefined,buildPlane);if(!rev)hideAns()},
+  go:()=>{Object.assign(S.plane,{mode:"int",ints:ints.slice(),showInt:true});setTab("plane")}}},
+
+ planeD(){const M=pick([["鋁 Al","FCC",.4049],["銅 Cu","FCC",.3615],["鎳 Ni","FCC",.3524],["α-鐵 Fe","BCC",.2866],["鉻 Cr","BCC",.2884],["鉬 Mo","BCC",.3147],["鎢 W","BCC",.3165]]);
+  const q=pick([[1,0,0],[1,1,0],[1,1,1],[2,0,0],[2,1,1],[2,2,0],[3,1,0],[3,1,1],[2,2,2]]);const N=dot3(q,q),d=M[2]/Math.sqrt(N);const red=reduce(q);
+  return{cat:"plane",title:"面間距 d",view:"cubic",
+  prompt:`${M[0]}（${M[1]}）的晶格常數 a = ${M[2]} nm。求 ${idx(q,"()")} 的面間距 d（單位 nm，答到小數第四位）。`,
+  input:{kind:"num",unit:"nm",ph:"例如 0.2338"},check:x=>({ok:Math.abs(x-d)/d<.01,note:Math.abs(x-d)/d<.01?"":Math.abs(x-M[2]/Math.sqrt(dot3(red,red)))/d<.01&&!same(q,red)?"你算的是約分後晶面的間距。題目問的是 "+idx(q,"()")+"，要用原本的指數代入。":""}),
+  hint:"立方晶系：d = a / √(h² + k² + l²)。",
+  sol:()=>`<ol><li><b>公式：</b>d = a / √(h² + k² + l²)</li><li><b>代入：</b>h² + k² + l² = ${q.map(v=>v*v).join(" + ")} = ${N}，√${N} = ${Math.sqrt(N).toFixed(4)}</li>
+   <li><b>計算：</b>d = ${M[2]} / ${Math.sqrt(N).toFixed(4)} = <b class="mono">${d.toFixed(4)} nm</b></li></ol>${same(q,red)?"":`<p class="note">${idx(q,"()")} 和 ${idx(red,"()")} 平行，但間距只有它的 1/${q[0]/red[0]||q[1]/red[1]||q[2]/red[2]}。繞射（第 3.16 節）會用到這種指數沒約分的晶面。</p>`}`,
+  scene:()=>withS("plane",Object.assign({},PLANE0,{h:q[0],k:q[1],l:q[2],family:true}),undefined,buildPlane),
+  go:()=>{Object.assign(S.plane,{mode:"idx",h:q[0],k:q[1],l:q[2],family:true});setTab("plane")}}},
+
+ planeFam(){const FS=[[1,0,0],[1,1,0],[1,1,1],[2,1,0],[2,1,1],[2,2,1]];const F=pick(FS);
+  const mem=shuffle(famC(...F,true)).slice(0,3).map(v=>Math.random()<.35?negv(v):v);
+  const G=pick(FS.filter(x=>!same(x,F)));const out=Math.random()<.5?pick(famC(...G,true)):negv(pick(famC(...G,true)));
+  const opts=shuffle([...mem.map(v=>({v,out:false})),{v:out,out:true}]);const ai=opts.findIndex(o=>o.out);
+  return{cat:"plane",title:"等效晶面族",view:"cubic",
+  prompt:`下列哪一個晶面<b>不</b>屬於 ${idx(F,"{}")} 族？`,
+  input:{kind:"mc",opts:opts.map(o=>idx(o.v,"()"))},check:i=>({ok:i===ai}),ai,
+  hint:"同一族的晶面：三個數字的絕對值是同一組，只是順序或正負不同。",
+  sol:()=>`<ol><li><b>規則：</b>立方晶系中，把 ${idx(F,"()")} 的三個指數任意換順序、任意加負號，得到的晶面都屬於 ${idx(F,"{}")} 族。</li>
+   <li><b>檢查：</b>${idx(out,"()")} 的數字絕對值是 ${out.map(Math.abs).sort().join("、")}，不是 ${F.map(Math.abs).sort().join("、")} 的排列，所以不屬於這一族。</li>
+   <li><b>看圖：</b>淡藍色的是 ${idx(F,"{}")} 族的其他成員。</li></ol>`,
+  scene:rev=>withS("plane",Object.assign({},PLANE0,{h:F[0],k:F[1],l:F[2],eq:rev}),undefined,buildPlane),
+  go:()=>{Object.assign(S.plane,{mode:"idx",h:F[0],k:F[1],l:F[2],eq:true});setTab("plane")}}},
+
+ dirPic(){const q=pick(QPOOL.dir);const m=Math.max(...q.map(Math.abs));const t=q.map(x=>x<0?1:0),hd=t.map((v,i)=>v+q[i]/m);
+  return{cat:"dir",title:"看圖寫晶向",view:"cubic",
+  prompt:"圖中橘色箭頭的晶向指數是？角落的數字是座標（例如 110 代表 (1, 1, 0)）。",
+  input:{kind:"idx",labels:["u","v","w"],br:"[]"},check:a=>({ok:same(a,q),note:same(a,negv(q))?"方向剛好相反。晶向有方向性，頭減尾，不能尾減頭。":""}),
+  hint:"找出箭頭的頭和尾座標，頭減尾，再化成最小整數。",
+  sol:()=>`<ol><li><b>尾：</b>${coordStr(t)}　<b>頭：</b>${coordStr(hd)}</li><li><b>頭減尾：</b>${coordStr(hd.map((v,i)=>v-t[i]))}</li>
+   <li><b>化成最小整數：</b>${m>1?`乘以 ${m} → `:""}<b class="mono">${idx(q,"[]")}</b></li></ol>`,
+  scene:rev=>withS("dir",Object.assign({},DIR0,{u:q[0],v:q[1],w:q[2],mode:rev?"idx":"quiz",showPath:rev,corner:true}),q,buildDir),
+  go:()=>{Object.assign(S.dir,{mode:"idx",u:q[0],v:q[1],w:q[2],showPath:true});setTab("dir")}}},
+
+ dirPts(){const C=["0","1/2","1"];let tail,head,r;
+  do{tail=[pick(C),pick(C),pick(C)];head=[pick(C),pick(C),pick(C)];r=null;
+    const tv=tail.map(parseNum),hv=head.map(parseNum),d=hv.map((v,i)=>v-tv[i]);if(d.every(v=>Math.abs(v)<1e-9))continue;
+    const df=d.map(v=>toFrac(v));const L=df.reduce((s,f)=>lcm(s,f.d),1);const raw=df.map(f=>f.n*L/f.d);r={d,df,L,raw,uvw:reduce(raw)}}while(!r||tail.every(x=>x==="0")&&Math.random()<.7);
+  const{d,L,raw,uvw}=r;const g=raw.reduce((s,v)=>gcd(s,v),0);
+  return{cat:"dir",title:"座標 → 晶向",view:"cubic",
+  prompt:`一個向量的尾在 <span class="mono">(${tail.join(", ")})</span>、頭在 <span class="mono">(${head.join(", ")})</span>（單位 a）。它的晶向指數是？`,
+  input:{kind:"idx",labels:["u","v","w"],br:"[]"},check:a=>({ok:same(a,uvw),note:same(a,negv(uvw))?"方向剛好相反：要用頭減尾。":""}),
+  hint:"頭的座標減尾的座標，有分數就乘以分母，再約分。",
+  sol:()=>`<ol><li><b>頭減尾：</b>${coordStr(d)}</li>${L>1?`<li><b>乘以 ${L} 消去分數：</b>(${raw.map(fstr).join(", ")})</li>`:""}
+   ${g>1?`<li><b>約分（公因數 ${g}）</b></li>`:""}<li><b>晶向：</b><b class="mono">${idx(uvw,"[]")}</b></li></ol>`,
+  scene:rev=>{withS("dir",Object.assign({},DIR0,{mode:"pts",tail,head,showPath:rev,corner:true}),undefined,buildDir);if(!rev)hideAns()},
+  go:()=>{Object.assign(S.dir,{mode:"pts",tail:tail.slice(),head:head.slice(),showPath:true});setTab("dir")}}},
+
+ dirAngle(){const DS=[[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,-1,0],[1,1,1],[-1,1,1],[1,-1,1],[1,1,-1],[1,1,2],[2,1,0],[1,0,-1]];let a,b;
+  do{a=pick(DS);b=pick(DS)}while(crossZero(a,b));const D=dot3(a,b),na=dot3(a,a),nb=dot3(b,b),c=D/Math.sqrt(na*nb),th=Math.acos(c)*180/Math.PI;
+  return{cat:"dir",title:"兩晶向的夾角",view:"cubic",
+  prompt:`立方晶系中，${idx(a,"[]")} 和 ${idx(b,"[]")} 的夾角是幾度？（答到小數第一位）`,
+  input:{kind:"num",unit:"°",ph:"例如 54.7"},check:x=>({ok:Math.abs(x-th)<.6}),
+  hint:"立方晶系的晶向就是 xyz 向量，用內積：cos θ = (u₁u₂ + v₁v₂ + w₁w₂) / (|向量1|·|向量2|)。",
+  sol:()=>`<ol><li><b>內積：</b>${a.map((v,i)=>`(${fstr(v)})(${fstr(b[i])})`).join(" + ")} = ${fstr(D)}</li>
+   <li><b>長度：</b>|${idx(a,"[]")}| = ${sq(na)}，|${idx(b,"[]")}| = ${sq(nb)}</li>
+   <li><b>cos θ</b> = ${fstr(D)} / (${sq(na)} × ${sq(nb)}) = ${c.toFixed(4)}</li><li><b>θ = ${th.toFixed(1)}°</b></li></ol>`,
+  scene:rev=>{drawCells(1,false);drawAxes(1.4);const c0=[.5,.5,.5];ball(V(...c0),.03,COL.ink);sceneDirFrom(c0,a,COL.accent,idx(a,"[]"));sceneDirFrom(c0,b,COL.steel,idx(b,"[]"));
+    if(rev)lab(V(...c0),"θ = "+th.toFixed(1)+"°","ok big",0,22)},
+  go:()=>{Object.assign(S.dir,{mode:"idx",u:a[0],v:a[1],w:a[2],showPath:false,eq:false});setTab("dir")}}},
+
+ dirRel(){const PL=[[1,0,0],[1,1,0],[1,1,1],[1,-1,0],[1,1,-1],[0,1,1],[1,0,1],[1,-1,1]];const p=pick(PL);const rel=pick(["perp","par","none"]);
+  const all=[];for(const x of[-1,0,1])for(const y of[-1,0,1])for(const z of[-1,0,1]){const v=[x,y,z];if(v.some(t=>t))all.push(v)}
+  for(const v of[[2,1,0],[1,2,0],[1,1,2],[2,-1,1],[1,-2,1],[-1,1,2],[2,1,1]])all.push(v);
+  let u;if(rel==="perp")u=Math.random()<.6?p.slice():negv(p);else if(rel==="par")u=pick(all.filter(v=>dot3(v,p)===0));else u=pick(all.filter(v=>dot3(v,p)!==0&&!crossZero(v,p)));
+  const ai={perp:0,par:1,none:2}[rel];const D=dot3(u,p);
+  return{cat:"dir",title:"晶向和晶面的關係",view:"cubic",
+  prompt:`立方晶系中，晶向 ${idx(u,"[]")} 和晶面 ${idx(p,"()")} 是什麼關係？`,
+  input:{kind:"mc",opts:["垂直於晶面","平行於晶面（躺在面上或和面平行）","既不垂直也不平行"]},check:i=>({ok:i===ai}),ai,
+  hint:"兩個判斷：指數成比例 → 垂直；h·u + k·v + l·w = 0 → 平行。",
+  sol:()=>`<ol><li><b>比例：</b>${crossZero(u,p)?`${idx(u,"[]")} 和 [${p.map(ib).join("")}] 成比例。立方晶系中 [hkl] 垂直於 (hkl)，所以<b>垂直</b>。`:`${idx(u,"[]")} 和 ${idx(p,"[]")} 不成比例，所以不垂直。`}</li>
+   ${crossZero(u,p)?"":`<li><b>內積：</b>h·u + k·v + l·w = ${p.map((v,i)=>`(${fstr(v)})(${fstr(u[i])})`).join(" + ")} = ${fstr(D)}　${D===0?"→ 等於 0，方向和晶面的法向量垂直，所以<b>平行於晶面</b>。":"→ 不是 0，所以也不平行。"}</li>`}
+   <li><b>看圖：</b>藍色箭頭是晶面的法向量 ${idx(p,"[]")}。</li></ol>`,
+  scene:rev=>{withS("plane",Object.assign({},PLANE0,{h:p[0],k:p[1],l:p[2],showNormal:rev}),undefined,buildPlane);sceneDirFrom([.5,.5,.5],u,COL.accent,idx(u,"[]"))},
+  go:()=>{Object.assign(S.dir,{mode:"idx",u:u[0],v:u[1],w:u[2],showPlane:false});setTab("dir")}}},
+
+ hexPic(){const q=pick(QPOOL.hex);const i=-(q[0]+q[1]);
+  return{cat:"hex",title:"看圖寫六方晶面",view:"hex",
+  prompt:"圖中橘色晶面的四指數 (hkil) 是？輸入 h、k、l，i 會自動算出。",
+  input:{kind:"idx",labels:["h","k","l"],br:"()",hex:"plane"},check:a=>({ok:same(a,q)||same(a,negv(q))}),
+  hint:"看晶面在 a₁、a₂、c 軸上的截距，取倒數得到 h、k、l，再用 i = −(h + k)。",
+  sol:()=>`<ol><li><b>截距：</b>a₁：${q[0]?aFrac(q[0]):"∞"}　a₂：${q[1]?aFrac(q[1]):"∞"}　c：${q[2]?aFrac(q[2],"c"):"∞"}</li>
+   <li><b>取倒數：</b>h = ${q[0]}，k = ${q[1]}，l = ${q[2]}</li><li><b>補上 i：</b>i = −(h + k) = ${i}</li>
+   <li><b>答案：</b><b class="mono">${idx([q[0],q[1],i,q[2]],"()")}</b>　（圖上也標了 a₃ 的截距，可以直接驗證 i）</li></ol>`,
+  scene:rev=>withS("hex",Object.assign({},HEX0,{kind:rev?"plane":"quiz",h:q[0],k:q[1],l:q[2],showInt:rev,atoms:false}),q,buildHex),
+  go:()=>{Object.assign(S.hex,{kind:"plane",h:q[0],k:q[1],l:q[2],showInt:true});setTab("hex")}}},
+
+ hex34(){const L3=[[1,0,0],[0,1,0],[1,1,0],[1,-1,0],[-1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1],[2,1,0],[1,2,0],[1,-1,1],[-1,0,1]];const q=pick(L3);
+  const[U,V_,W]=q;const four=reduce([2*U-V_,2*V_-U,-(U+V_),3*W]);
+  return{cat:"hex",title:"三指數 → 四指數晶向",view:"hexdir",
+  prompt:`把六方晶系的晶向 ${idx(q,"[]")} 換成四指數 [uvtw]。輸入 u、v、w，t 會自動算出。`,
+  input:{kind:"idx",labels:["u","v","w"],br:"[]",hex:"dir"},check:a=>({ok:same([a[0],a[1],-(a[0]+a[1]),a[2]],four)}),
+  hint:"u = (2U − V)/3，v = (2V − U)/3，t = −(u + v)，w = W，最後化成最小整數。",
+  sol:()=>`<ol><li><b>代公式：</b>u = (2·${fstr(U)} − ${fstr(V_)})/3 = ${fstr((2*U-V_)/3)}，v = (2·${fstr(V_)} − ${fstr(U)})/3 = ${fstr((2*V_-U)/3)}，t = −(u + v) = ${fstr(-(U+V_)/3)}，w = ${W}</li>
+   <li><b>乘以 3、約分：</b><b class="mono">${idx(four,"[]")}</b></li><li><b>看圖：</b>藍色虛線走三軸、綠色虛線走四軸，終點相同。</li></ol>`,
+  scene:rev=>{withS("hex",Object.assign({},HEX0,{kind:"dir",din:"3",U,V:V_,W,path3:true,path4:rev}),undefined,buildHex);if(!rev)hideAns()},
+  go:()=>{Object.assign(S.hex,{kind:"dir",din:"3",U,V:V_,W,path3:true,path4:true});setTab("hex")}}},
+
+ hex43(){const L3=[[1,0,0],[0,1,0],[1,1,0],[1,-1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1],[2,1,0],[1,2,0],[-1,0,1]];const q=pick(L3);
+  const four=reduce([2*q[0]-q[1],2*q[1]-q[0],-(q[0]+q[1]),3*q[2]]);const[u,v,t,w]=four;const ans=reduce([u-t,v-t,w]);
+  return{cat:"hex",title:"四指數 → 三指數晶向",view:"hexdir",
+  prompt:`把六方晶系的晶向 ${idx(four,"[]")} 換回三指數 [UVW]。`,
+  input:{kind:"idx",labels:["U","V","W"],br:"[]"},check:a=>({ok:same(a,ans)}),
+  hint:"U = u − t，V = v − t，W = w，再約分。",
+  sol:()=>`<ol><li><b>代公式：</b>U = u − t = ${u} − (${t}) = ${u-t}，V = v − t = ${v} − (${t}) = ${v-t}，W = w = ${w}</li>
+   <li><b>約分：</b><b class="mono">${idx(ans,"[]")}</b></li></ol>`,
+  scene:rev=>withS("hex",Object.assign({},HEX0,{kind:"dir",din:"4",u4:u,v4:v,w4:w,path4:true,path3:rev}),undefined,buildHex),
+  go:()=>{Object.assign(S.hex,{kind:"dir",din:"4",u4:u,v4:v,w4:w,path3:true,path4:true});setTab("hex")}}},
+
+ hexI(){const q=pick([[1,0,0],[0,1,0],[1,1,0],[1,-1,0],[1,0,1],[2,-1,0],[1,1,1],[-1,2,0],[1,0,-1],[0,1,2],[1,-2,1],[2,0,1],[1,1,2]]);const i=-(q[0]+q[1]);
+  return{cat:"hex",title:"補上第三個指數 i",view:"hex",
+  prompt:`六方晶面 <span class="mono">(${ib(q[0])} ${ib(q[1])} ? ${ib(q[2])})</span> 中，問號的 i 是多少？`,
+  input:{kind:"idx",labels:["i"],br:"  "},check:a=>({ok:a[0]===i}),
+  hint:"i = −(h + k)。",
+  sol:()=>`<ol><li><b>公式：</b>i = −(h + k) = −(${q[0]} + ${q[1]}) = ${i}</li><li><b>完整寫法：</b><b class="mono">${idx([q[0],q[1],i,q[2]],"()")}</b></li><li><b>看圖：</b>晶面和 a₃ 軸的截距是 ${i?aFrac(i):"∞"}，倒數正好是 i。</li></ol>`,
+  scene:rev=>{withS("hex",Object.assign({},HEX0,{kind:"plane",h:q[0],k:q[1],l:q[2],showInt:rev}),undefined,buildHex);if(!rev)hideAns()},
+  go:()=>{Object.assign(S.hex,{kind:"plane",h:q[0],k:q[1],l:q[2],showInt:true});setTab("hex")}}},
+
+ atomPlane(){const st=pick(["sc","bcc","fcc"]),pl=pick([[1,0,0],[1,1,0],[1,1,1]]);const key=st+pl.join("");
+  const T={sc100:[1,[["4 個角落","1/4","1"]]],sc110:[1,[["4 個角落","1/4","1"]]],sc111:[.5,[["3 個角落","1/6","1/2"]]],
+   bcc100:[1,[["4 個角落","1/4","1"]]],bcc110:[2,[["4 個角落","1/4","1"],["體心（在面的正中央）","1","1"]]],bcc111:[.5,[["3 個角落","1/6","1/2"]]],
+   fcc100:[2,[["4 個角落","1/4","1"],["面心（在正中央）","1","1"]]],fcc110:[2,[["4 個角落","1/4","1"],["2 個面心（在長邊中點）","1/2","1"]]],fcc111:[2,[["3 個角落","1/6","1/2"],["3 個面心（在三邊中點）","1/2","3/2"]]]}[key];
+  const SH={100:["正方形，a × a","a²","4 個角都是 90°，每個角落原子只有 1/4 落在這塊面上"],110:["長方形，a × √2 a","√2 a²","4 個角都是 90°，角落原子各佔 1/4"],111:["正三角形，邊長 √2 a","(√3/2) a²","三角形的角是 60°，角落原子各佔 60°/360° = 1/6"]}[pl.join("")];
+  return{cat:"atom",title:"晶面上的原子數",view:"cubic",
+  prompt:`${STR[st]} 晶胞中，${idx(pl,"()")} 晶面切過晶胞的那一塊（圖中橘色區域）上，總共有幾個原子？可以用分數，例如 1/2。`,
+  input:{kind:"num",unit:"個",ph:"例如 3/2"},check:x=>({ok:Math.abs(x-T[0])<1e-6}),
+  hint:"圖中亮起來的原子都在面上。角落的原子只有一部分在這塊面內；落在邊上的算 1/2；在面中間的算 1 個。",
+  sol:()=>`<ol><li><b>這塊面的形狀：</b>${SH[0]}。${SH[2]}。</li>${T[1].map(r=>`<li><b>${r[0]}：</b>每個 ${r[1]} → 共 ${r[2]}</li>`).join("")}
+   <li><b>合計：</b>${fstr(T[0])} 個原子</li><li><b>面密度：</b>PD = ${fstr(T[0])} / (${SH[1]})${st==="fcc"&&pl.join("")==="111"?"　（FCC 的 (111) 是最密堆積面）":""}${st==="bcc"&&pl.join("")==="110"?"　（BCC 原子排最密的是 (110)）":""}</li></ol>`,
+  scene:()=>withS("plane",Object.assign({},PLANE0,{h:pl[0],k:pl[1],l:pl[2],atoms:st}),undefined,buildPlane),
+  go:()=>{Object.assign(S.plane,{mode:"idx",h:pl[0],k:pl[1],l:pl[2],atoms:st});setTab("plane")}}},
+
+ atomLine(){const st=pick(["sc","bcc","fcc"]),d=pick([[1,0,0],[1,1,0],[1,1,1]]);const dk=d.join("");
+  const mid={sc:{100:0,110:0,111:0},bcc:{100:0,110:0,111:1},fcc:{100:0,110:1,111:0}}[st][dk];const n=1+mid;const Lg={100:"a",110:"√2 a",111:"√3 a"}[dk];
+  const midTxt={bcc:"體心原子",fcc:"面心原子"}[st];
+  return{cat:"atom",title:"晶向上的原子數",view:"cubic",
+  prompt:`${STR[st]} 晶胞中，沿 ${idx(d,"[]")} 從一個角落走到對面角落（圖中箭頭，長度 ${Lg}）。這段線上總共有幾個原子？可以用分數。`,
+  input:{kind:"num",unit:"個",ph:"例如 2"},check:x=>({ok:Math.abs(x-n)<1e-6}),
+  hint:"兩端的原子和下一段線共用，各算 1/2；中間完整落在線上的算 1 個。",
+  sol:()=>`<ol><li><b>兩端角落：</b>2 × 1/2 = 1</li><li><b>中間：</b>${mid?`${midTxt}剛好在線段中點 → 1`:"線上沒有其他原子 → 0"}</li><li><b>合計：</b>${n} 個原子</li>
+   <li><b>線密度：</b>LD = ${n} / (${Lg})${(st==="fcc"&&dk==="110")||(st==="bcc"&&dk==="111")?"　（這是此結構原子排最密的方向）":""}</li></ol>`,
+  scene:()=>withS("dir",Object.assign({},DIR0,{u:d[0],v:d[1],w:d[2],atoms:st}),undefined,()=>{buildDir();labels=labels.filter(l=>!/^[頭尾]/.test(l.html))}),
+  go:()=>{Object.assign(S.dir,{mode:"idx",u:d[0],v:d[1],w:d[2],atoms:st,ext:true});setTab("dir")}}}
+};
+const PCATS=[["plane","晶面",["planePic","planeInt","planeD","planeFam"]],["dir","晶向",["dirPic","dirPts","dirAngle","dirRel"]],["hex","六方",["hexPic","hex34","hex43","hexI"]],["atom","原子密度",["atomPlane","atomLine"]]];
+const ROUND=10;
+const PR={cats:{plane:true,dir:true,hex:true,atom:true},seq:[],i:0,q:null,ans:null,tries:0,counted:false,rev:false,fb:"",log:[]};
+let PST={};try{PST=JSON.parse(localStorage.getItem("miller-practice"))||{}}catch(e){}
+const savePST=()=>{try{localStorage.setItem("miller-practice",JSON.stringify(PST))}catch(e){}};
+function newRound(){const types=PCATS.filter(c=>PR.cats[c[0]]).flatMap(c=>c[2]);let seq=[];while(seq.length<ROUND)seq=seq.concat(shuffle(types));
+  for(let i=1;i<seq.length;i++)if(seq[i]===seq[i-1]){const j=seq.findIndex((t,k)=>k>i&&t!==seq[i]);if(j>0)[seq[i],seq[j]]=[seq[j],seq[i]]}
+  PR.seq=seq.slice(0,ROUND);PR.i=0;PR.log=[];loadQ()}
+function loadQ(){const t=PR.seq[PR.i];if(!t){PR.q=null;return}const q=GEN[t]();q.type=t;PR.q=q;PR.tries=0;PR.counted=false;PR.rev=false;PR.fb="";
+  PR.ans=q.input.kind==="idx"?q.input.labels.map(()=>0):q.input.kind==="num"?"":null}
+function tally(ok){if(PR.counted)return;PR.counted=true;const t=PR.q.type;PST[t]=PST[t]||[0,0];PST[t][1]++;if(ok)PST[t][0]++;savePST();PR.log.push({t,ok})}
+function ansDisplay(){const q=PR.q,a=PR.ans,I=q.input;if(I.hex==="plane")return idx([a[0],a[1],-(a[0]+a[1]),a[2]],"()");if(I.hex==="dir")return idx([a[0],a[1],-(a[0]+a[1]),a[2]],"[]");
+  return I.br.trim()?idx(a,I.br):ib(a[0])}
+function pAnswerUI(){const q=PR.q,I=q.input;
+  if(I.kind==="idx")return`<div class="bigidx" id="pdisp">${ansDisplay()}</div><div class="stps">${I.labels.map((l,j)=>(I.hex&&j===2?`<div class="stp"><span class="sl">${I.hex==="dir"?"t":"i"}</span><output class="sv auto" id="pauto">${ib(-(PR.ans[0]+PR.ans[1]))}</output></div>`:"")+
+    `<div class="stp"><span class="sl">${l}</span><button class="sb" data-pst="${j}" data-d="-1" aria-label="${l} 減一">−</button><output class="sv">${ib(PR.ans[j])}</output><button class="sb" data-pst="${j}" data-d="1" aria-label="${l} 加一">＋</button></div>`).join("")}</div>`;
+  if(I.kind==="num")return`<label class="numrow"><input class="tin" id="pnum" data-pin="1" inputmode="decimal" autocomplete="off" placeholder="${I.ph||""}" value="${PR.ans}"> <span>${I.unit||""}</span></label>`;
+  return`<div class="mcq">${I.opts.map((o,j)=>{let c="";if(PR.rev&&j===q.ai)c=" right";else if(PR.ans===j&&PR.tries&&!(PR.rev&&j===q.ai))c=PR.lastOk?" right":" wrong";
+    return`<label class="opt${c}"><input type="radio" name="pmc" data-pmc="${j}"${PR.ans===j?" checked":""}> ${o}</label>`}).join("")}</div>`}
+function panelPractice(){const chips=PCATS.map(([k,n])=>`<button class="pchip" data-pcat="${k}" aria-pressed="${PR.cats[k]}">${n}</button>`).join("");
+  const tot=Object.values(PST).reduce((s,v)=>[s[0]+v[0],s[1]+v[1]],[0,0]);
+  let h=`<div><p class="ph">題型（可複選，改了會重新開始一回）</p><div class="chips">${chips}</div></div>`;
+  if(!PR.q){const by={};PR.log.forEach(r=>{const c=PCATS.find(c=>c[2].includes(r.t))[1];by[c]=by[c]||[0,0];by[c][1]++;if(r.ok)by[c][0]++});const ok=PR.log.filter(r=>r.ok).length;
+    h+=`<div class="quiz"><b>本回結束：答對 ${ok} / ${PR.log.length} 題</b><div class="tbl"><table class="cmp" style="min-width:0"><thead><tr><th>題型</th><th>答對</th></tr></thead><tbody>${Object.entries(by).map(([c,v])=>`<tr><td>${c}</td><td>${v[0]} / ${v[1]}</td></tr>`).join("")}</tbody></table></div>
+      <p class="note">${ok===PR.log.length?"全部答對，很穩！可以換別的題型組合挑戰。":"答錯的題型可以回到上面的分頁，用 3D 教具自己調整數字多看幾次。"}</p><div class="qacts"><button class="b" data-pr="restart">再練一回</button></div></div>`;
+    return h+`<span class="score">累計（這台裝置）：答對 ${tot[0]} / ${tot[1]} 題</span>`}
+  const q=PR.q,done=PR.log.filter(r=>r.ok).length;
+  h+=`<div class="pbar"><span>第 ${PR.i+1} / ${ROUND} 題</span><span>本回答對 ${done}</span></div><div class="pprog"><i style="width:${PR.i/ROUND*100}%"></i></div>
+   <div class="quiz"><span class="qtag">${q.title}</span><div>${q.prompt}</div>${pAnswerUI()}
+   <div class="qacts">${PR.rev?"":`<button class="b" data-pr="check">檢查</button><button class="b ghost" data-pr="show">看詳解</button>`}<button class="b${PR.rev?"":" ghost"}" data-pr="next">${PR.i+1<ROUND?"下一題":"看本回結果"}</button></div>
+   <div>${PR.fb}</div>${PR.rev?`<div class="steps"><b>詳解</b>${q.sol()}<a class="toolink" href="#" data-pr="go">在 3D 教具裡自己調整這一題 →</a></div>`:""}</div>
+   <span class="score">累計（這台裝置）：答對 ${tot[0]} / ${tot[1]} 題</span>`;
+  return h}
+function pCheck(){const q=PR.q,I=q.input;let a=PR.ans;
+  if(I.kind==="num"){a=parseNum(PR.ans);if(isNaN(a)){PR.fb=`<div class="fb no">請輸入數字，例如 0.2338 或 1/2。</div>`;renderPanel();return}}
+  if(I.kind==="mc"&&a==null){PR.fb=`<div class="fb no">請先選一個答案。</div>`;renderPanel();return}
+  const r=q.check(a);PR.tries++;PR.lastOk=r.ok;tally(r.ok);
+  if(r.ok){PR.rev=true;PR.fb=`<div class="fb ok"><b>答對了！</b>${PR.tries>1?"（第 "+PR.tries+" 次答對，本回只算第一次的結果）":""}${r.note||""}</div>`;rebuild()}
+  else PR.fb=`<div class="fb no"><b>再想想。</b>${r.note||q.hint}${PR.tries>=2?"　也可以按「看詳解」。":""}</div>`;
+  renderPanel()}
+function buildPractice(){if(!PR.q){drawCells(1,false);drawAxes(1.4);return}PR.q.scene(PR.rev)}
+$("panel").addEventListener("click",e=>{if(S.tab!=="practice")return;const b=e.target.closest("[data-pst],[data-pr],[data-pcat]");if(!b)return;
+  if(b.dataset.pst!=null){const j=+b.dataset.pst;PR.ans[j]=clamp(PR.ans[j]+(+b.dataset.d),-6,6);renderPanel();return}
+  if(b.dataset.pcat){const k=b.dataset.pcat;PR.cats[k]=!PR.cats[k];if(!Object.values(PR.cats).some(Boolean))PR.cats[k]=true;newRound();renderPanel();resetView(false);rebuild();return}
+  const a=b.dataset.pr;if(a==="check")pCheck();
+  if(a==="show"){tally(false);PR.rev=true;PR.fb=`<div class="fb ok"><b>答案已顯示。</b>3D 圖也加上了解題線索，轉一轉對照看看。</div>`;renderPanel();rebuild()}
+  if(a==="next"){if(!PR.counted)tally(false);PR.i++;loadQ();renderPanel();resetView(false);rebuild();$("stage").scrollIntoView({block:"start",behavior:reduceMotion?"auto":"smooth"})}
+  if(a==="restart"){newRound();renderPanel();resetView(false);rebuild()}
+  if(a==="go"){e.preventDefault();PR.q.go();window.scrollTo({top:0,behavior:reduceMotion?"auto":"smooth"})}});
+$("panel").addEventListener("change",e=>{if(S.tab!=="practice")return;const t=e.target;if(t.dataset.pmc!=null){PR.ans=+t.dataset.pmc;if(!PR.rev){PR.tries=PR.tries;}}});
+$("panel").addEventListener("input",e=>{if(S.tab!=="practice")return;const t=e.target;if(t.dataset.pin)PR.ans=t.value});
+$("panel").addEventListener("keydown",e=>{if(S.tab==="practice"&&e.target.dataset&&e.target.dataset.pin&&e.key==="Enter"){e.preventDefault();pCheck()}});
+newRound();
+
+
 /* ================= tabs ================= */
 function setTab(t){S.tab=t;try{history.replaceState(null,"","#"+t)}catch(e){}
   document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
@@ -580,7 +840,7 @@ document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.tab!=="proof")rebuild()});
 
 init3D();
-{const h=(location.hash||"").slice(1);setTab(["plane","dir","hex","proof"].includes(h)?h:"plane")}
+{const h=(location.hash||"").slice(1);setTab(["plane","dir","hex","practice","proof"].includes(h)?h:"plane")}
 </script>
 </body>
 </html>
