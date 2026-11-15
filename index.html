@@ -1282,7 +1282,369 @@ const PR3=[
 CH2.practice=PR2;CH3.practice=PR3;
 
 [["3-E","miller.html#dir","晶向 3D 互動教具"],["3-F","miller.html#plane","晶面 3D 互動教具"],["3-G","miller.html#hex","六方晶系 3D 教具"],["3-G","miller.html#proof","米勒–布拉菲證明"],["3-H","miller.html#plane","在 3D 教具看晶面上的原子"],["3-F","miller.html#practice","米勒指數綜合練習（每回 10 題）"],["3-H","miller.html#practice","晶面、晶向原子數練習"]].forEach(([c,h,t])=>{const z=CH3.zones.find(z=>z.code===c);if(z)(z.tools=z.tools||[]).push([h,t])});
-const CHAPTERS=[CH2,CH3];
+/* ================= Chapter 4: Imperfections in Solids ================= */
+/* deterministic "micrograph" for grain-size questions: Voronoi grains + horizontal test lines */
+const mkG4=S0=>{const W=360,H=230,NL=4;
+  function clipPoly(P,a,b,c){const out=[];for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length];const fp=a*p[0]+b*p[1]-c,fq=a*q[0]+b*q[1]-c;
+    if(fp<=0)out.push(p);if(fp*fq<0){const t=fp/(fp-fq);out.push([p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t])}}return out}
+  for(let seed=S0;seed<S0+1;seed++){const r=rng(seed),pts=[];let tries=0;
+    while(pts.length<32&&tries<5000){tries++;const x=r()*W,y=r()*H;if(pts.every(q=>Math.hypot(q[0]-x,q[1]-y)>40))pts.push([x,y])}
+    const near=(x,y)=>{let bi=0,bd=1e9;pts.forEach((q,i)=>{const d=(q[0]-x)**2+(q[1]-y)**2;if(d<bd){bd=d;bi=i}});return bi};
+    const cells=pts.map((p,i)=>{let P=[[0,0],[W,0],[W,H],[0,H]];pts.forEach((q,j)=>{if(i===j)return;const a=q[0]-p[0],b=q[1]-p[1],c=(q[0]*q[0]+q[1]*q[1]-p[0]*p[0]-p[1]*p[1])/2;P=clipPoly(P,a,b,c)});return P});
+    const vy=[];cells.forEach(P=>P.forEach(v=>{if(v[1]>1&&v[1]<H-1)vy.push(v[1])}));
+    const lines=[];let ok=true;
+    for(let l=0;l<NL&&ok;l++){const yc=H*(l+1)/(NL+1);let best=null,bd=-1;for(let y=Math.round(yc-8);y<=yc+8;y++){const d=Math.min(...vy.map(v=>Math.abs(v-y)));if(d>bd){bd=d;best=y}}
+      if(bd<7){ok=false;break}const y=best;let prev=near(0,y),xs=[];for(let x=.25;x<=W;x+=.25){const n=near(x,y);if(n!==prev){xs.push(x);prev=n}}
+      for(let i=1;i<xs.length;i++)if(xs[i]-xs[i-1]<9)ok=false;if(xs.some(x=>x<6||x>W-6))ok=false;lines.push({y,xs})}
+    if(!ok)continue;
+    const P=lines.reduce((s,l)=>s+l.xs.length,0);return{W,H,cells,lines,P,seed}}};
+const G4=mkG4(26902),G4Q=mkG4(72215);
+
+const AR4=`<defs><marker id="c4ka" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker><marker id="c4ks" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fs"/></marker><marker id="c4ki" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>`;
+Object.assign(FIG,{
+ c4classes(){let b="";
+  const heads=[["0 維　點缺陷","空位、間隙原子、雜質原子"],["1 維　線缺陷","差排"],["2 維　面缺陷","表面、晶界、雙晶界、疊差"],["3 維　體缺陷","孔洞、裂縫、夾雜物"]];
+  heads.forEach(([t,s],i)=>{const x0=8+i*158;b+=`<rect x="${x0}" y="34" width="150" height="168" class="fp stl"/>`+T(x0+75,24,t,"b")+T(x0+75,224,s,"sm")});
+  /* point */ for(let i=0;i<4;i++)for(let j=0;j<4;j++){const x=8+30+i*30,y=64+j*30;if(i===2&&j===1)b+=`<circle cx="${x}" cy="${y}" r="10" class="lnm dash"/>`;else b+=C(x,y,10,"fss sts")}
+  b+=T(8+75,192,"空位（虛線圈）","sm ta");
+  /* line */ {const x0=166;for(let i=0;i<5;i++){const x=x0+27+i*24;b+=L(x,109,x,170,"lns")}for(let i=0;i<6;i++){const x=x0+18+i*23;b+=L(x,46,x,103,i===3?"lna":"lns")}
+   b+=L(x0+72,108,x0+88,108,"lna")+L(x0+80,108,x0+80,97,"lna")+T(x0+75,192,"多出的半原子面","sm ta")}
+  /* surface */ {const x0=324;for(let i=0;i<4;i++)for(let j=0;j<5;j++)b+=C(x0+18+i*16,52+j*25,6,"fss sts");
+   for(let i=0;i<4;i++)for(let j=0;j<5;j++){const x=x0+96+i*16+j*5,y=48+j*25+i*4;if(x<x0+144)b+=C(x,y,6,"fas sta")}
+   b+=L(x0+82,40,x0+86,170,"lna dash")+T(x0+80,192,"晶界","sm ta")}
+  /* volume */ {const x0=482;b+=`<ellipse cx="${x0+55}" cy="88" rx="26" ry="18" class="fp lna"/><path d="M${x0+88} 130 l10 -8 l6 12 l10 -10 l8 14 l12 -9" class="lna"/>`+T(x0+55,124,"孔洞","sm ta")+T(x0+110,158,"裂縫","sm ta")+C(x0+30,150,7,"fd")+T(x0+30,176,"夾雜物","sm")}
+  return svg(640,234,"依維度分類的四種晶體缺陷：點缺陷、線缺陷、面缺陷、體缺陷",b)},
+
+ c4vac(){let b=T(160,22,"(a) 空位與自身間隙原子","b")+T(490,22,"(b) 空位分率隨溫度呈指數增加","b");
+  const s=32,x0=44,y0=50,V=[3,2],I=[5.5,3.5];
+  for(let i=0;i<8;i++)for(let j=0;j<6;j++){let x=x0+i*s,y=y0+j*s;
+    if(i===V[0]&&j===V[1]){b+=`<circle cx="${x}" cy="${y}" r="13" class="lnm dash"/>`;continue}
+    const dv=Math.hypot(i-V[0],j-V[1]);if(dv<1.5){x+=(V[0]-i)*2;y+=(V[1]-j)*2}
+    const di=Math.hypot(i-I[0],j-I[1]);if(di<1){x+=(i-I[0])*10;y+=(j-I[1])*10}
+    b+=C(x.toFixed(1),y.toFixed(1),13,"fss sts")}
+  const ix=x0+I[0]*s,iy=y0+I[1]*s;b+=C(ix,iy,13,"fa");
+  b+=`<circle cx="44" cy="262" r="7" class="lnm dash"/>`+T(56,266,"空位：原本有原子的位置空著","sm","start");
+  b+=C(44,284,7,"fa")+T(56,288,"自身間隙原子：擠進空隙，周圍變形大","sm ta","start");
+  /* curve */ const X0=360,X1=620,Y0=250,Y1=60,Tm=1400,f=T=>Math.exp(-0.9/(8.62e-5*T)),ymax=5e-4;
+  const px=T=>X0+(T-300)/(Tm-300)*(X1-X0),py=v=>Y0-v/ymax*(Y0-Y1);
+  b+=AR4+`<line x1="${X0}" y1="${Y0}" x2="${X1+8}" y2="${Y0}" class="ln" marker-end="url(#c4ki)"/><line x1="${X0}" y1="${Y0}" x2="${X0}" y2="${Y1-12}" class="ln" marker-end="url(#c4ki)"/>`;
+  let d="";for(let T=300;T<=1357;T+=8)d+=(d?"L":"M")+px(T).toFixed(1)+" "+py(f(T)).toFixed(1);b+=`<path d="${d}" class="lna"/>`;
+  [400,800,1200].forEach(T=>{b+=L(px(T),Y0,px(T),Y0+5,"ln")+T_(px(T),Y0+18,T)});
+  [[2e-4,"2×10⁻⁴"],[4e-4,"4×10⁻⁴"]].forEach(([v,t])=>{b+=L(X0-5,py(v),X0,py(v),"ln")+T(X0-8,py(v)+4,t,"sm","end")});
+  b+=T((X0+X1)/2,Y0+34,"溫度 T（K）","sm")+T(X0+6,Y1-16,"N_v / N","sm b","start");
+  b+=T(px(1357)-6,py(f(1357))-10,"銅接近熔點：約 10⁻⁴（一萬個位置空一個）","sm ta","end");
+  b+=T(px(700),py(0)-12,"低溫時幾乎看不到","sm mut");
+  return svg(640,300,"左：二維晶格中的空位與自身間隙原子；右：空位分率隨溫度的指數變化曲線",b)},
+
+ c4ss(){let b=T(160,22,"(a) 取代型固溶體","b")+T(480,22,"(b) 間隙型固溶體","b");const s=36;
+  const sub=[[1,1],[3,3],[4,0]];
+  for(let i=0;i<7;i++)for(let j=0;j<6;j++){const x=50+i*s,y=50+j*s;const isS=sub.some(q=>q[0]===i&&q[1]===j);b+=C(x,y,isS?15:13,isS?"fa":"fss sts")}
+  for(let i=0;i<7;i++)for(let j=0;j<6;j++)b+=C(370+i*s,50+j*s,13,"fss sts");
+  [[1.5,1.5],[3.5,3.5],[4.5,0.5],[0.5,4.5]].forEach(([i,j])=>b+=C(370+i*s,50+j*s,6,"fa"));
+  b+=T(160,272,"溶質原子取代溶劑原子的位置","sm")+T(160,290,"例：Cu–Ni（任意比例互溶）","sm mut");
+  b+=T(480,272,"小原子塞進溶劑原子之間的空隙","sm")+T(480,290,"例：C 溶在 Fe 中（最多約 2 wt%）","sm mut");
+  b+=L(320,34,320,292,"stl");
+  return svg(640,300,"取代型固溶體與間隙型固溶體的二維示意圖",b)},
+
+ c4sites(){let b="";
+  const face=(x0,y0,a,R,r,title,cen,label)=>{const id="c4cl"+x0;let s=T(x0+a/2,22,title,"b");
+   s+=`<defs><clipPath id="${id}"><rect x="${x0}" y="${y0}" width="${a}" height="${a}"/></clipPath></defs><g clip-path="url(#${id})">`;
+   [[0,0],[a,0],[0,a],[a,a]].forEach(([dx,dy])=>s+=C(x0+dx,y0+dy,R.toFixed(1),"fss sts"));if(cen)s+=C(x0+a/2,y0+a/2,R.toFixed(1),"fss sts");s+="</g>";
+   s+=`<rect x="${x0}" y="${y0}" width="${a}" height="${a}" class="ln" fill="none"/>`;
+   s+=C(x0+a/2,y0,r.toFixed(1),"fa");
+   const yd=y0-r-10;s+=L(x0,yd,x0+R,yd,"lnm")+L(x0+a-R,yd,x0+a,yd,"lnm")+L(x0+R,yd,x0+a-R,yd,"lna");
+   s+=T(x0+R/2,yd-4,"R","sm")+T(x0+a-R/2,yd-4,"R","sm")+T(x0+a/2,yd-6,"2r","sm ta b");
+   s+=L(x0,y0+a+14,x0+a,y0+a+14,"lnm")+T(x0+a/2,y0+a+30,label,"sm");return s};
+  b+=face(30,80,180,180*Math.sqrt(3)/4,(180-2*180*Math.sqrt(3)/4)/2,"(a) BCC (100) 面","", "a = 4R/√3 = 2R + 2r");
+  b+=face(260,80,180,180/(2*Math.sqrt(2)),(180-2*180/(2*Math.sqrt(2)))/2,"(b) FCC (100) 面",1,"a = 2R√2 = 2R + 2r");
+  b+=T(120,322,"r = (2/√3 − 1)R = 0.155R","sm ta b")+T(350,322,"r = (√2 − 1)R = 0.414R","sm ta b");
+  const tx=470;b+=T(tx+80,58,"剛好塞得進去的半徑 r/R","b");
+  [["結構","八面體","四面體"],["FCC","0.414","0.225"],["BCC","0.155","0.291"]].forEach((row,i)=>{const y=86+i*28;row.forEach((c,j)=>b+=T(tx+30+j*55,y,c,i===0?"sm mut":(j===0?"b":"")));if(i<2)b+=L(tx,y+9,tx+160,y+9,i===0?"ln":"stl")});
+  b+=T(tx+80,186,"八面體位置：配位數 6","sm")+T(tx+80,204,"四面體位置：配位數 4","sm");
+  b+=T(tx+80,236,"例：Fe（BCC）R = 0.124 nm","sm mut")+T(tx+80,254,"八面體 r ≈ 0.019 nm","sm mut")+T(tx+80,272,"C 原子 0.071 nm → 擠進去","sm mut")+T(tx+80,290,"周圍晶格被撐開（應變）","sm mut");
+  return svg(640,334,"BCC 與 FCC 的 (100) 面上，八面體間隙位於邊的中點；表格列出四種間隙位置可容納的原子半徑比",b)},
+
+ c4comp(){let b=T(320,22,"同一個合金：97 wt% Al – 3 wt% Cu","b");
+  const bar=(y,lab,al,cu)=>{const x0=150,W=440,w=W*al/100;return T(140,y+19,lab,"sm b","end")+`<rect x="${x0}" y="${y}" width="${w.toFixed(1)}" height="28" class="fss sts"/><rect x="${(x0+w).toFixed(1)}" y="${y}" width="${(W-w).toFixed(1)}" height="28" class="fa"/>`+T(x0+w/2,y+19,"Al "+al+"%","sm")+T(x0+W+6,y+19,"Cu "+cu+"%","sm ta b","start")};
+  b+=bar(40,"以質量計 wt%",97,3)+bar(84,"以原子數計 at%",98.7,1.3);
+  b+=T(320,140,"Cu 原子比較重（63.55 vs 26.98 g/mol），所以同樣的質量裡，Cu 原子的「個數」比較少。","sm mut");
+  const box=(x,t1,t2)=>`<rect x="${x}" y="164" width="112" height="46" rx="4" class="fp sts"/>`+T(x+56,184,t1,"sm b")+T(x+56,202,t2,"sm");
+  b+=ARROW("c4c")+box(18,"質量 m","g")+box(178,"莫耳數 n_m","= m / A")+box(338,"莫耳分率","n₁ / (n₁ + n₂)")+box(498,"原子百分比","× 100 → at%");
+  [130,290,450].forEach(x=>b+=`<line x1="${x+2}" y1="187" x2="${x+44}" y2="187" class="ln" marker-end="url(#c4c)"/>`);
+  b+=T(152,228,"÷ 原子量 A","sm ta");
+  return svg(640,240,"同一個鋁銅合金分別以重量百分比與原子百分比表示的比較，以及換算流程",b)},
+
+ c4edge(){let b=AR4+T(200,20,"(a) 刃差排的原子排列","b")+T(530,20,"(b) 用 b 與差排線的方向分類","b");
+  const s=30,cx=200,cy=160,R=10;const P=(x,y)=>[(cx+x*s).toFixed(1),(cy-y*s).toFixed(1)];
+  for(const y of[-3.5,-2.5,-1.5,-.5])for(let m=-6;m<6;m++){const x0=m+.5;const x=x0+.2*Math.sign(x0)*Math.exp(-Math.abs(x0)/(1.3*Math.abs(y)));const p=P(x,y);b+=C(p[0],p[1],R,"fss sts")}
+  for(const y of[.5,1.5,2.5,3.5])for(let k=-6;k<=6;k++){const x=k-.5*Math.sign(k)*(1-Math.exp(-Math.abs(k)/(1.3*y)));const p=P(x,y);if(Math.abs(x)>5.9)continue;b+=C(p[0],p[1],R,k===0?"fa":"fss sts")}
+  b+=L(cx-6*s,cy,cx+6*s,cy,"lnm dash");
+  b+=`<path d="M${cx-11} ${cy+4} H${cx+11} M${cx} ${cy+4} V${cy-13}" class="lna" style="stroke-width:3"/>`;
+  b+=T(cx,cy-4*s+2,"多出的半原子面 ↓","sm ta b");
+  b+=`<line x1="${cx-15}" y1="${cy+4.35*s}" x2="${cx+15}" y2="${cy+4.35*s}" class="lna" marker-end="url(#c4ka)"/>`+T(cx+24,cy+4.35*s+4,"b（與差排線垂直）","sm ta","start");
+  b+=T(cx,316,"⊥：差排線（垂直紙面）　虛線：滑移面","sm");
+  const bx=400;b+=L(390,30,390,312,"stl");
+  const head=(y,t,sub)=>T(bx+130,y,t,"b")+T(bx+130,y+17,sub,"sm mut");
+  let y=50;b+=head(y,"刃差排","b ⊥ 差排線")+L(bx+40,y+62,bx+220,y+62,"lns")+`<line x1="${bx+130}" y1="${y+60}" x2="${bx+130}" y2="${y+30}" class="lna" marker-end="url(#c4ka)"/>`+T(bx+140,y+42,"b","ta b","start")+T(bx+226,y+66,"線","sm ts","start");
+  y=140;b+=head(y,"螺旋差排","b ∥ 差排線")+L(bx+40,y+62,bx+220,y+62,"lns")+`<line x1="${bx+100}" y1="${y+48}" x2="${bx+160}" y2="${y+48}" class="lna" marker-end="url(#c4ka)"/>`+T(bx+130,y+40,"b","ta b")+T(bx+226,y+66,"線","sm ts","start");
+  y=230;b+=head(y,"混合差排","b 與線既不垂直也不平行")+`<path d="M${bx+40} ${y+66} Q${bx+130} ${y+66} ${bx+190} ${y+30}" class="lns" fill="none"/>`+`<line x1="${bx+70}" y1="${y+48}" x2="${bx+130}" y2="${y+48}" class="lna" marker-end="url(#c4ka)"/>`+T(bx+100,y+40,"b","ta b");
+  b+=T(530,312,"同一條差排上 b 處處相同","sm ta");
+  return svg(640,326,"刃差排附近的原子排列，以及刃差排、螺旋差排、混合差排中布格向量與差排線的方向關係",b)},
+
+ c4bound(){let b=T(105,20,"(a) 晶界","b")+T(320,20,"(b) 雙晶界","b")+T(535,20,"(c) 疊差（FCC）","b");
+  /* (a) */ {const xb=105,yc=150;b+=`<defs><clipPath id="c4ga"><rect x="10" y="34" width="190" height="230"/></clipPath></defs><g clip-path="url(#c4ga)">`;
+   for(let i=-6;i<6;i++)for(let j=-7;j<8;j++){const x=xb-8+i*19,y=yc+j*19;if(x<xb-6)b+=C(x,y,6.5,"fss sts")}
+   const a=24*Math.PI/180;for(let i=-1;i<12;i++)for(let j=-9;j<9;j++){const u=i*19,v=j*19;const x=xb+8+u*Math.cos(a)-v*Math.sin(a),y=yc+u*Math.sin(a)+v*Math.cos(a);if(x>xb+5)b+=C(x.toFixed(1),y.toFixed(1),6.5,"fas sta")}
+   b+="</g>"+L(xb,34,xb,264,"lna dash")+T(105,284,"兩邊晶粒的方位不同，","sm")+T(105,300,"交界處原子排列不匹配","sm")}
+  /* (b) twin */ {const xb=320,y0=40;b+=`<defs><clipPath id="c4gb"><rect x="225" y="34" width="190" height="230"/></clipPath></defs><g clip-path="url(#c4gb)">`;
+   for(let i=0;i<7;i++)for(let j=-6;j<12;j++)for(const sg of[1,-1]){if(i===0&&sg<0)continue;const x=xb+sg*i*16,y=y0+j*20+i*10;if(y<34||y>262)continue;b+=C(x,y,6.5,i===0?"fa":sg>0?"fss sts":"fas sta")}
+   b+="</g>"+L(xb,34,xb,264,"lna dash")+T(320,284,"界面兩側原子互為鏡像","sm")+T(320,300,"（橘色原子在鏡面上）","sm")}
+  /* (c) stacking */ {const seqs=[["A","B","C","A","B","C","A","B"],["A","B","C","A","B","A","B","C"]],off={A:0,B:1/3,C:2/3};
+   seqs.forEach((sq,c)=>{const x0=446+c*94;b+=T(x0+38,46,c?"有疊差":"正常","sm b");sq.forEach((L_,k)=>{const y=250-k*26;const bad=c===1&&k===5;
+     b+=T(x0,y+4,L_,"sm"+(bad?" ta b":""),"end");for(let m=0;m<3;m++)b+=C((x0+18+(m+off[L_])*18).toFixed(1),y,8,bad?"fa":"fss sts")})});
+   b+=T(535,284,"ABCABC… 的順序","sm")+T(535,300,"中間少了一層 C","sm")}
+  b+=L(212,30,212,300,"stl")+L(428,30,428,300,"stl");
+  return svg(640,310,"三種面缺陷的示意圖：方位不同的晶粒之間的晶界、兩側互為鏡像的雙晶界，以及 FCC 堆疊順序被打斷的疊差",b)},
+
+ c4micro(){let b=T(160,20,"(a) 拋光、蝕刻後的表面（剖面）","b")+T(480,20,"(b) 各種顯微鏡的解析範圍（概略）","b");
+  const surf=[[20,120],[106,112],[118,138],[130,114],[206,126],[218,150],[230,124],[300,118]];
+  b+=AR4+`<path d="M20 260 L${surf.map(p=>p.join(" ")).join(" L")} L300 260 Z" class="fss stl"/>`;
+  b+=L(118,138,110,260,"ln")+L(218,150,226,260,"ln");
+  b+=`<path d="M${surf.map(p=>p.join(" ")).join(" L")}" class="ln" fill="none"/>`;
+  [[60,116,0],[168,120,-10],[262,121,6]].forEach(([x,y,tilt])=>{b+=`<line x1="${x-6}" y1="${y-64}" x2="${x-6}" y2="${y-8}" class="lns" marker-end="url(#c4ks)"/>`+`<line x1="${x+6}" y1="${y-8}" x2="${x+6+tilt*3}" y2="${y-60}" class="lna" marker-end="url(#c4ka)"/>`});
+  b+=`<line x1="118" y1="70" x2="118" y2="128" class="lns" marker-end="url(#c4ks)"/><line x1="122" y1="130" x2="146" y2="160" class="lna dash" marker-end="url(#c4ka)"/>`;
+  b+=T(150,176,"凹槽 → 暗線","sm ta b","start");
+  b+=T(64,214,"晶粒 1","sm mut")+T(168,214,"晶粒 2","sm mut")+T(262,214,"晶粒 3","sm mut");
+  b+=T(160,40,"藍：入射光　橘：反射光","sm");
+  b+=T(160,282,"晶粒方位不同 → 蝕刻後表面傾角不同 → 亮度不同","sm");
+  /* (b) chart: 10^-11 .. 10^-1 m */ const X0=356,X1=626,lo=-11,hi=-1,px=e=>X0+(e-lo)/(hi-lo)*(X1-X0);
+  const bars=[["肉眼",-4,-1,true],["光學顯微鏡",-7,-2],["掃描式電子顯微鏡 SEM",-9,-4],["穿透式電子顯微鏡 TEM",-10,-5],["掃描探針顯微鏡 SPM",-11,-6]];
+  bars.forEach(([n,a,z,open],i)=>{const y=52+i*36;b+=T(px(a)+2,y-4,n,"sm","start")+`<rect x="${px(a).toFixed(1)}" y="${y}" width="${(px(z)-px(a)).toFixed(1)}" height="12" class="${i===0?"fl":"fs"}"/>`+(open?T(px(z)+4,y+11,"→","sm","start"):"")});
+  b+=L(X0,240,X1,240,"ln");for(let e=lo;e<=hi;e+=2){b+=L(px(e),240,px(e),245,"ln")+`<text x="${px(e)}" y="258" text-anchor="middle" class="sm">10<tspan dy="-5" style="font-size:9px">${e}</tspan></text>`}
+  b+=T((X0+X1)/2,276,"可看到的特徵尺寸（m）","sm");
+  b+=T(X0,296,"原子 ≈ 0.1–0.3 nm","sm mut","start")+T(X1,296,"晶粒 ≈ μm–mm","sm mut","end");
+  b+=L(330,30,330,300,"stl");
+  return svg(640,306,"左：蝕刻後不同晶粒與晶界凹槽反射光線的方式；右：肉眼、光學顯微鏡、SEM、TEM、SPM 可觀察的尺寸範圍",b)},
+
+ c4grain(noCount){const withCount=!noCount;const g=withCount?G4:G4Q,x0=20,y0=30;let b="";
+  b+=`<rect x="${x0}" y="${y0}" width="${g.W}" height="${g.H}" class="fp"/>`;
+  g.cells.forEach(P=>{b+=`<polygon points="${P.map(p=>(x0+p[0]).toFixed(1)+","+(y0+p[1]).toFixed(1)).join(" ")}" fill="none" class="ln"/>`});
+  b+=`<rect x="${x0}" y="${y0}" width="${g.W}" height="${g.H}" class="ln" fill="none"/>`;
+  g.lines.forEach((l,i)=>{b+=L(x0,y0+l.y,x0+g.W,y0+l.y,"lna")+T(x0-6,y0+l.y+4,String(i+1),"sm b ta","end");l.xs.forEach(x=>b+=C((x0+x).toFixed(1),(y0+l.y).toFixed(1),3.5,"fs"));
+   if(withCount)b+=T(x0+g.W+10,y0+l.y+4,l.xs.length+" 個交點","sm","start")});
+  const sb=72;b+=`<rect x="${x0+g.W-sb-8}" y="${y0+g.H-22}" width="${sb+6}" height="16" class="fp"/>`+L(x0+g.W-sb-5,y0+g.H-12,x0+g.W-5,y0+g.H-12,"ln")+T(x0+g.W-sb/2-5,y0+g.H+16,"100 μm","sm");
+  if(withCount)b+=T(x0+g.W+10,y0+g.H-20,"合計 P = "+g.P,"sm b ta","start")+T(x0+g.W+10,y0+g.H,"每條線長 50 mm","sm mut","start");
+  return svg(withCount?520:400,y0+g.H+30,"示意的金相照片，畫有四條水平測試線，藍點為測試線與晶界的交點",b)},
+ c4grainQ(){return FIG.c4grain(true)}
+});
+const T_=(x,y,s)=>T(x,y,String(s),"sm");
+
+const TERMS4={
+ "imperfection":["缺陷","晶體中偏離完美週期排列的地方；至少有一個尺寸在原子直徑的數量級。",1],
+ "point defect":["點缺陷","只牽涉一、兩個原子位置的缺陷，例如空位、自身間隙原子、雜質原子。",1],
+ "vacancy":["空位","原本應該有原子的晶格位置卻是空的。所有結晶固體都含有空位。",1],
+ "self-interstitial":["自身間隙原子","晶體本身的原子擠進平常不被佔據的間隙位置。",1],
+ "Boltzmann's constant":["波茲曼常數","k = 1.38×10⁻²³ J/atom·K = 8.62×10⁻⁵ eV/atom·K。",1],
+ "atomic vibration":["原子振動","原子在晶格位置附近的快速振動；溫度就是原子平均振動程度的量度。",1],
+ "alloy":["合金","由兩種或以上元素組成的金屬物質。",1],
+ "solid solution":["固溶體","加入溶質原子後，晶體結構維持不變、沒有形成新相，成分均勻。",1],
+ "solvent":["溶劑","含量最多的元素或化合物，又稱主體原子（host）。",1],
+ "solute":["溶質","含量較少的元素或化合物。",1],
+ "substitutional solid solution":["取代型固溶體","溶質原子取代溶劑原子的晶格位置。",1],
+ "interstitial solid solution":["間隙型固溶體","小的溶質原子填入溶劑原子之間的間隙。",1],
+ "Hume-Rothery rules":["休謨–羅瑟里規則","決定取代型固溶度大小的四個條件：原子尺寸、晶體結構、電負度、價數。",0],
+ "octahedral / tetrahedral site":["八面體／四面體間隙位置","間隙周圍分別有 6 個或 4 個主體原子（配位數 6 或 4）。",0],
+ "composition":["成分（濃度）","合金中某一元素的相對含量。",1],
+ "weight percent":["重量百分比","以質量為基準的成分，wt%。",1],
+ "atom percent":["原子百分比","以莫耳數（原子數）為基準的成分，at%。",1],
+ "dislocation":["差排","一維（線）缺陷，周圍的原子排列錯位。",0],
+ "edge dislocation":["刃差排","晶體中多出一個半原子面，差排線沿著半原子面的邊緣；b 與差排線垂直。",1],
+ "screw dislocation":["螺旋差排","剪應力使晶體上下錯開一個原子距離，原子面繞差排線形成螺旋坡道；b 與差排線平行。",1],
+ "mixed dislocation":["混合差排","同時具有刃型與螺旋型成分的差排；b 與差排線既不垂直也不平行。",1],
+ "dislocation line":["差排線","差排周圍晶格扭曲所沿著的那條線。",1],
+ "Burgers vector":["布格向量","表示差排造成之晶格扭曲大小與方向的向量 b。",1],
+ "interfacial defect":["面缺陷","二維的界面，分隔晶體結構或方位不同的區域。",0],
+ "grain boundary":["晶界","分隔兩個方位不同之晶粒的界面，約數個原子寬。",0],
+ "small-angle grain boundary":["小角度晶界","方位差只有幾度的晶界，可看成差排的排列（傾斜晶界、扭轉晶界）。",0],
+ "twin boundary":["雙晶界","特殊的晶界，兩側原子位置互為鏡像。",0],
+ "stacking fault":["疊差","FCC 中最密堆積面的 ABCABC… 堆疊順序被打斷。",0],
+ "microstructure":["顯微組織","需要用顯微鏡才看得到的結構特徵，例如晶粒大小與形狀。",1],
+ "microscopy":["顯微術","用顯微鏡觀察顯微組織。",1],
+ "photomicrograph":["顯微照片","記錄顯微鏡影像的照片。",1],
+ "transmission electron microscope (TEM)":["穿透式電子顯微鏡","電子束穿過極薄試片成像，可看到內部結構與差排。",1],
+ "scanning electron microscope (SEM)":["掃描式電子顯微鏡","電子束掃描試片表面，收集反射（背向散射）電子成像。",1],
+ "scanning probe microscope (SPM)":["掃描探針顯微鏡","以極尖的探針掃描表面，產生奈米解析度的三維表面形貌圖。",1],
+ "grain size":["晶粒大小","多晶材料中晶粒的平均直徑；可用截線法或 ASTM 比較法測定。",1],
+ "ASTM grain-size number":["ASTM 晶粒度號數","G；放大 100 倍時每平方英吋的晶粒數 n = 2^(G−1)。G 越大，晶粒越細。",0]
+};
+
+const CH4={
+ num:4,sym:"Df",name:"固體中的缺陷",en:"Imperfections in Solids",termsMap:TERMS4,
+ lead:"第三章假設晶體是完美的，但真實的材料一定含有各種缺陷。本章依維度介紹點缺陷（空位、間隙原子、雜質）、線缺陷（差排）與面缺陷（晶界、雙晶界），學會計算空位數目與合金成分，最後認識觀察顯微組織的顯微鏡與晶粒大小的測定方法。很多材料性質（強度、導電、擴散）都是由缺陷決定的。",
+ goals:[
+  "描述空位與自身間隙原子這兩種晶體缺陷。",
+  "已知相關常數，計算材料在某一溫度下的平衡空位數。",
+  "說出兩種固溶體的名稱，並用文字或示意圖說明。",
+  "已知合金中各元素的質量與原子量，計算各元素的重量百分比與原子百分比。",
+  "對刃差排、螺旋差排與混合差排：(a) 描述並畫出差排 (b) 標出差排線的位置 (c) 指出差排線延伸的方向。",
+  "描述 (a) 晶界與 (b) 雙晶界附近的原子結構。"],
+ zones:[
+ {code:"4-A",title:"缺陷的分類",en:"Introduction; Bulk Defects; Atomic Vibrations",ref:"§4.1, 4.7–4.8",
+  terms:["imperfection","point defect","atomic vibration"],
+  fig:"c4classes",cap:"依缺陷的維度（幾何形狀）分成四類。點缺陷只牽涉一、兩個原子位置；線缺陷沿著一條線；面缺陷是二維的界面；體缺陷則大得多，通常在加工過程中產生。",
+  points:[
+   ["沒有完美的晶體","第三章假設原子完全規則排列，但真實的晶體都含有大量缺陷。缺陷不一定是壞事：很多材料特性是刻意加入特定數量的缺陷得到的，例如合金化、半導體摻雜。"],
+   ["依維度分類","點缺陷（0 維）：空位、自身間隙原子、雜質原子。線缺陷（1 維）：差排。面缺陷（2 維）：外表面、晶界、雙晶界、疊差、相界。體缺陷（3 維）：孔洞、裂縫、外來夾雜物、其他相。"],
+   ["原子振動也是一種不完美","每個原子都在晶格位置附近快速振動，室溫下頻率約 10¹³ 次/秒、振幅只有千分之幾奈米。溫度其實就是原子平均振動程度的量度；振動劇烈到打斷大量鍵結時，材料就熔化。"]],
+  qs:[
+   {t:"match",s:"把下列缺陷配對到正確的類別。",opts:["點缺陷","線缺陷","面缺陷","體缺陷"],items:[["空位",0],["刃差排",1],["雙晶界",2],["孔洞",3],["雜質原子",0]],h:"想想缺陷延伸的維度：一個位置、一條線、一個面，還是一個體積。",sol:"空位：點缺陷\n刃差排：線缺陷\n雙晶界：面缺陷\n孔洞：體缺陷\n雜質原子：點缺陷"},
+   {t:"mc",s:"下列關於晶體缺陷的敘述，何者正確？",o:["缺陷一定會讓材料性質變差","高純度的金屬可以做到完全沒有缺陷","許多材料特性是刻意加入特定缺陷而得到的","缺陷只存在於金屬中"],a:2,e:"例如黃銅（Cu–Zn 合金）比純銅硬，積體電路靠精確控制的雜質濃度運作。缺陷不一定有害，而且不可能完全消除。"}
+  ]},
+ {code:"4-B",title:"空位與自身間隙原子",en:"Vacancies and Self-Interstitials",ref:"§4.2",
+  terms:["vacancy","self-interstitial","Boltzmann's constant"],
+  fig:"c4vac",cap:"(a) 空位旁的原子會稍微往空位靠；自身間隙原子比間隙空間大很多，把周圍的原子撐開。(b) 以 Cu（Q_v = 0.9 eV）為例，空位分率在低溫時極小，接近熔點時才明顯增加。",
+  points:[
+   ["空位","原本該有原子的晶格位置空著。所有結晶固體都含有空位，無法做出沒有空位的材料。原因是熱力學：空位增加了晶體的熵（亂度）。"],
+   ["平衡空位數","N_v = N exp(−Q_v / kT)。N 是單位體積的原子位置數，Q_v 是形成一個空位所需的能量，T 是絕對溫度（K = °C + 273），k 是波茲曼常數。溫度升高，空位數呈指數增加。"],
+   ["原子位置數 N","N = N_A ρ / A。ρ 用 g/cm³ 時，要乘 10⁶ cm³/m³ 換成每立方公尺。例：Cu 的 N ≈ 8.0×10²⁸ atoms/m³。"],
+   ["單位要一致","Q_v 用 eV/atom 時，k = 8.62×10⁻⁵ eV/atom·K；Q_v 用 J/mol 時，改用氣體常數 R = 8.31 J/mol·K。大多數金屬在接近熔點時，空位分率 N_v/N 約 10⁻⁴。"],
+   ["自身間隙原子","晶體本身的原子擠進間隙位置。金屬原子比間隙空間大很多，造成很大的晶格扭曲，所以形成機率很低，濃度遠小於空位。"]],
+  formulas:[["N_v = N exp(−Q_v / kT)","平衡空位數（式 4.1）"],["N = N_A ρ / A","單位體積原子位置數（式 4.2）"],["k = 8.62×10⁻⁵ eV/atom·K","= 1.38×10⁻²³ J/atom·K"],["T (K) = T (°C) + 273",""]],
+  qs:[
+   {t:"num",s:"銅的空位形成能 Q_v = 0.90 eV/atom。計算銅在 1357 K（熔點）時的空位分率 N_v/N。",u:"",a:4.56e-4,tol:3,sci:true,h:"N_v/N = exp(−Q_v / kT)，k 用 eV 的單位。",sol:"N_v/N = exp[−0.90 / (8.62×10⁻⁵ × 1357)]\n      = exp(−7.694)\n      = 4.56×10⁻⁴\n約每 2200 個位置有一個空位。"},
+   {t:"num",s:"某金屬的 Q_v = 1.0 eV/atom。溫度從 500 °C 升到 1000 °C 時，平衡空位數變成原來的幾倍？",u:"倍",a:363,tol:3,h:"兩個溫度的比值：N_v2/N_v1 = exp[−(Q_v/k)(1/T₂ − 1/T₁)]，溫度記得換成 K。",sol:"T₁ = 773 K，T₂ = 1273 K\nN_v2/N_v1 = exp[−(1.0 / 8.62×10⁻⁵)(1/1273 − 1/773)]\n          = exp(5.89)\n          ≈ 363 倍"},
+   {t:"mc",s:"為什麼金屬中自身間隙原子的濃度遠低於空位？",o:["自身間隙原子會很快變成空位","金屬原子比間隙空間大很多，擠進去造成很大的晶格扭曲，形成能很高","間隙位置只存在於陶瓷中","自身間隙原子的熵比較大"],a:1,e:"間隙空間很小，塞進一個主體原子需要很大的能量，所以平衡濃度非常低。"}
+  ]},
+ {code:"4-C",title:"雜質與固溶體",en:"Impurities in Solids: Solid Solutions",ref:"§4.3",
+  terms:["alloy","solid solution","solvent","solute","substitutional solid solution","interstitial solid solution","Hume-Rothery rules"],
+  fig:"c4ss",cap:"(a) 取代型：溶質原子（橘）佔據溶劑原子的晶格位置，大小與溶劑接近。(b) 間隙型：很小的溶質原子塞在溶劑原子之間的空隙。兩種情況下晶體結構都保持不變。",
+  points:[
+   ["純金屬不存在","即使精煉到 99.9999%，每立方公尺仍有 10²²–10²³ 個雜質原子。常用的金屬大多是合金：刻意加入其他元素來提高強度或耐蝕性，例如純銀很軟，加 7.5% 銅成為純度 92.5% 的標準銀（sterling silver）就變強。"],
+   ["溶劑、溶質與固溶體","含量最多的是溶劑（主體原子），含量少的是溶質。加入溶質後，晶體結構維持不變、沒有新相，且成分均勻，就是固溶體；溶質太多或差異太大時，會形成第二相（第 9 章）。"],
+   ["取代型固溶體與 Hume–Rothery 規則","溶質取代溶劑的位置。要有大量溶解度，需滿足：① 原子半徑相差小於約 ±15%；② 晶體結構相同；③ 電負度相近（相差大時容易形成金屬間化合物）；④ 其他條件相同時，金屬較容易溶解價數比自己高的金屬。"],
+   ["例：Cu–Ni 完全互溶","Cu 與 Ni 的半徑 0.128 與 0.125 nm、都是 FCC、電負度 1.9 與 1.8、常見價數 +1 與 +2。四個條件都很接近，所以可以任意比例互溶。"],
+   ["間隙型固溶體","溶質原子比溶劑小很多，填入間隙。因為金屬的堆積因子高、間隙很小，最大濃度通常低於 10%。例：碳溶在鐵中最多約 2%（C 半徑 0.071 nm，Fe 為 0.124 nm）。"]],
+  formulas:[["半徑差 = |R_溶質 − R_溶劑| / R_溶劑 × 100%","小於約 15% 才可能大量互溶"]],
+  qs:[
+   {t:"num",s:"Cu 的原子半徑 0.128 nm、Ni 為 0.125 nm。以 Cu 為溶劑，兩者的原子半徑相差百分之多少？",u:"%",a:2.34,tol:3,h:"|R_Ni − R_Cu| / R_Cu × 100%。",sol:"(0.128 − 0.125) / 0.128 × 100% = 2.3%\n遠小於 15%，符合第一條規則。"},
+   {t:"mc",s:"依 Hume–Rothery 規則，下列哪一對金屬最可能形成任意比例互溶的取代型固溶體？",o:["Ag（FCC，R = 0.144 nm）與 Au（FCC，R = 0.144 nm）","Fe（BCC，R = 0.124 nm）與 Pb（FCC，R = 0.175 nm）","Cu（FCC，R = 0.128 nm）與 Zn（HCP，R = 0.133 nm）","Al（FCC，R = 0.143 nm）與 Si（鑽石立方，R = 0.118 nm）"],a:0,e:"Ag 與 Au 半徑幾乎相同、都是 FCC，電負度與價數也相近，確實可以完全互溶。Fe–Pb 半徑差 41%，其他兩組結構不同。"},
+   {t:"mc",s:"碳原子溶在鐵中形成哪一種固溶體？為什麼？",o:["取代型，因為 C 與 Fe 的電負度相近","間隙型，因為 C 原子比 Fe 小很多，可以塞進間隙","取代型，因為 C 與 Fe 晶體結構相同","不會形成固溶體"],a:1,e:"C（0.071 nm）比 Fe（0.124 nm）小很多，填入 Fe 原子之間的間隙，形成間隙型固溶體。"}
+  ]},
+ {code:"4-D",title:"間隙位置的大小",en:"Interstitial Sites in FCC and BCC",ref:"§4.3, 例題 4.2",
+  terms:["octahedral / tetrahedral site"],
+  fig:"c4sites",cap:"在 (100) 面上，八面體間隙位於晶胞邊的中點。間隙原子剛好塞進去、不造成晶格應變時，邊長等於 2R + 2r。BCC 的角落原子沿邊不接觸但距離較短，所以 r 很小；FCC 角落原子之間的空隙較大。",
+  points:[
+   ["兩種間隙","依周圍主體原子的數目（配位數）分為：四面體位置（4 個鄰居，連線形成四面體）與八面體位置（6 個鄰居，連線形成八面體）。FCC 與 BCC 都各有這兩種。"],
+   ["代表位置","FCC 八面體：0½1 與 ½½½（晶胞中心）；FCC 四面體：¼¾¼。BCC 八面體：½1½ 與 ½10（邊的中點）；BCC 四面體：1½¼。"],
+   ["怎麼算 r","找出間隙原子與主體原子剛好接觸的方向。以 BCC 八面體為例：沿著晶胞邊，2R + 2r = a = 4R/√3，所以 r = (2/√3 − 1)R = 0.155R。FCC 八面體同理：2R + 2r = 2R√2，r = 0.414R。"],
+   ["間隙原子會撐開晶格","即使很小的雜質原子，通常也比間隙大。例如 Fe 的八面體間隙約 0.019 nm，C 原子 0.071 nm，所以碳原子會把周圍的鐵原子撐開，產生晶格應變。FCC 的間隙比較大，所以碳在 FCC 鐵（沃斯田鐵）中的溶解度比 BCC 鐵高。"]],
+  formulas:[["BCC 八面體：r = 0.155R","2R + 2r = 4R/√3"],["FCC 八面體：r = 0.414R","2R + 2r = 2R√2"],["FCC 四面體：r = 0.225R",""],["BCC 四面體：r = 0.291R",""]],
+  qs:[
+   {t:"num",s:"仿照例題 4.2，計算剛好塞進 FCC 八面體間隙（位於晶胞邊的中點）的原子半徑 r，以 R 的倍數表示。",u:"R",a:0.414,tol:1,h:"FCC 晶胞邊長 a = 2R√2。沿著邊，兩個角落原子之間塞一個間隙原子：2R + 2r = a。",sol:"2R + 2r = 2R√2\nr = (√2 − 1)R = 0.414R"},
+   {t:"num",s:"α-Fe（BCC）的原子半徑 R = 0.124 nm。剛好塞進八面體間隙、不造成應變的原子半徑是多少？",u:"nm",a:0.0192,tol:2,h:"BCC 八面體：r = 0.155R。",sol:"r = 0.155 × 0.124 nm = 0.0192 nm\n碳原子 0.071 nm 大很多，所以溶入時會產生晶格應變。"},
+   {t:"mc",s:"四面體間隙與八面體間隙是依什麼區分的？",o:["間隙的位置在晶胞內或晶胞表面","周圍最近鄰主體原子的數目（配位數 4 或 6）","間隙原子的種類","晶體結構是 FCC 或 BCC"],a:1,e:"四面體位置被 4 個主體原子包圍，八面體位置被 6 個主體原子包圍。"}
+  ]},
+ {code:"4-E",title:"成分的表示法：wt% 與 at%",en:"Specification of Composition",ref:"§4.4",
+  terms:["composition","weight percent","atom percent"],
+  fig:"c4comp",cap:"同一個 Al–Cu 合金：以質量計 Cu 佔 3%，以原子數計只佔 1.3%，因為 Cu 原子比 Al 重。換算的關鍵是除以原子量，把質量換成莫耳數（原子數）。",
+  points:[
+   ["重量百分比 wt%","以質量為基準：C₁ = m₁ / (m₁ + m₂) × 100。工業上最常用。"],
+   ["原子百分比 at%","以莫耳數（原子數）為基準：先算 n_m1 = m₁′ / A₁，再 C₁′ = n_m1 / (n_m1 + n_m2) × 100。"],
+   ["互相換算","wt% → at%：C₁′ = C₁A₂ / (C₁A₂ + C₂A₁) × 100。at% → wt%：C₁ = C₁′A₁ / (C₁′A₁ + C₂′A₂) × 100。兩種元素時，C₁ + C₂ = 100、C₁′ + C₂′ = 100。"],
+   ["推導的想法（例題 4.3）","假設合金總質量 M′ 克，則元素 1 的質量 = C₁M′/100，除以 A₁ 得到莫耳數，代入 at% 定義後 M′ 和 100 約掉，就得到 C₁′ = C₁A₂ / (C₁A₂ + C₂A₁) × 100。"],
+   ["合金的平均密度與原子量","ρ_ave = 100 / (C₁/ρ₁ + C₂/ρ₂)；A_ave = 100 / (C₁/A₁ + C₂/A₂)（C 為 wt%）。這些式子假設合金體積等於各元素體積相加，對稀薄固溶體誤差很小。擴散計算用的 kg/m³ 濃度：C₁″ = C₁ / (C₁/ρ₁ + C₂/ρ₂) × 10³。"]],
+  formulas:[["C₁ = m₁ / (m₁ + m₂) × 100","wt%（式 4.3a）"],["C₁′ = n_m1 / (n_m1 + n_m2) × 100","at%（式 4.5a）"],["C₁′ = C₁A₂ / (C₁A₂ + C₂A₁) × 100","wt% → at%（式 4.6a）"],["C₁ = C₁′A₁ / (C₁′A₁ + C₂′A₂) × 100","at% → wt%（式 4.7a）"],["ρ_ave = 100 / (C₁/ρ₁ + C₂/ρ₂)","平均密度（式 4.10a）"],["A_ave = 100 / (C₁/A₁ + C₂/A₂)","平均原子量（式 4.11a）"]],
+  qs:[
+   {t:"num",s:"黃銅含 70 wt% Cu、30 wt% Zn（A_Cu = 63.55、A_Zn = 65.41 g/mol）。Zn 的原子百分比是多少？",u:"at%",a:29.4,tol:1,h:"C′_Zn = C_Zn A_Cu / (C_Zn A_Cu + C_Cu A_Zn) × 100。",sol:"C′_Zn = (30)(63.55) / [(30)(63.55) + (70)(65.41)] × 100\n      = 1906.5 / (1906.5 + 4578.7) × 100\n      = 29.4 at%\nCu 與 Zn 原子量很接近，所以 wt% 和 at% 差不多。"},
+   {t:"num",s:"承上題，Cu 與 Zn 的密度分別為 8.94 與 7.13 g/cm³。計算這個黃銅的平均密度。",u:"g/cm³",a:8.31,tol:1,h:"ρ_ave = 100 / (C_Cu/ρ_Cu + C_Zn/ρ_Zn)，C 用 wt%。",sol:"ρ_ave = 100 / (70/8.94 + 30/7.13)\n      = 100 / (7.830 + 4.208)\n      = 8.31 g/cm³"},
+   {t:"num",s:"某 Al–Cu 合金含 5 at% Cu。換算成 Cu 的重量百分比（A_Al = 26.98、A_Cu = 63.55 g/mol）。",u:"wt%",a:11.03,tol:1,h:"C_Cu = C′_Cu A_Cu / (C′_Cu A_Cu + C′_Al A_Al) × 100。",sol:"C_Cu = (5)(63.55) / [(5)(63.55) + (95)(26.98)] × 100\n     = 317.8 / (317.8 + 2563.1) × 100\n     = 11.0 wt%"}
+  ]},
+ {code:"4-F",title:"差排：線缺陷",en:"Dislocations—Linear Defects",ref:"§4.5",
+  terms:["dislocation","edge dislocation","screw dislocation","mixed dislocation","dislocation line","Burgers vector"],
+  fig:"c4edge",cap:"(a) 晶體上半部多插入一個半原子面（橘），它的下緣就是差排線（⊥ 處，垂直紙面）。差排線上方原子被擠壓、下方被拉開，離差排線越遠扭曲越小。(b) 差排的種類由布格向量 b 與差排線的相對方向決定。",
+  points:[
+   ["刃差排","晶體中多了一個半原子面，差排線沿著半原子面的邊緣。符號 ⊥ 表示多出的半面在上方，⊤ 表示在下方。差排線附近的原子上方受壓縮、下方受拉伸。"],
+   ["螺旋差排","施加剪應力，使晶體前方上半部相對下半部錯開一個原子距離。原子面繞著差排線形成螺旋狀的坡道，因此得名。"],
+   ["混合差排","大多數差排同時具有刃型與螺旋型成分。一條彎曲的差排可以在一端是純螺旋、另一端是純刃型，中間是混合型。"],
+   ["布格向量 b","表示差排造成的晶格扭曲大小與方向。刃差排：b ⊥ 差排線；螺旋差排：b ∥ 差排線；混合差排：既不垂直也不平行。同一條差排上，b 處處相同。金屬中 b 指向最密堆積方向，大小等於原子間距。"],
+   ["差排從哪裡來、有什麼用","凝固、塑性變形、快速冷卻的熱應力都會產生差排。用穿透式電子顯微鏡（TEM）可以看到差排（照片中的暗線）。大多數結晶材料的永久（塑性）變形，就是靠差排的移動（第 7 章）。"]],
+  formulas:[["刃差排：b ⊥ 差排線",""],["螺旋差排：b ∥ 差排線",""],["FCC：|b| = a√2 / 2 = 2R","沿 ⟨110⟩ 最密方向"],["BCC：|b| = a√3 / 2 = 2R","沿 ⟨111⟩ 最密方向"]],
+  qs:[
+   {t:"match",s:"依布格向量 b 與差排線的關係，判斷差排的種類。",opts:["刃差排","螺旋差排","混合差排"],items:[["b 與差排線垂直",0],["b 與差排線平行",1],["b 與差排線夾 45°",2]],h:"刃 ⊥、螺 ∥、其他是混合。",sol:"垂直：刃差排\n平行：螺旋差排\n既不垂直也不平行：混合差排"},
+   {t:"num",s:"FCC 銅的晶格常數 a = 0.3615 nm。差排的布格向量沿最密堆積方向 ⟨110⟩、大小等於原子間距。計算 |b|。",u:"nm",a:0.2556,tol:1,h:"FCC 原子沿面對角線接觸，相鄰原子中心距離 = 面對角線的一半 = a√2/2。",sol:"|b| = a√2 / 2 = 0.3615 × 1.4142 / 2\n    = 0.2556 nm（= 2R）"},
+   {t:"mc",s:"一條彎曲的差排從純螺旋型逐漸變成純刃型，它的布格向量會怎樣？",o:["方向跟著差排線轉動","大小逐漸變小","沿整條差排都相同","只在刃型部分存在"],a:2,e:"即使差排線改變方向與性質，同一條差排上的布格向量處處相同；改變的是 b 與差排線的夾角。"}
+  ]},
+ {code:"4-G",title:"面缺陷：表面、晶界、雙晶界、疊差",en:"Interfacial Defects",ref:"§4.6",
+  terms:["interfacial defect","grain boundary","small-angle grain boundary","twin boundary","stacking fault"],
+  fig:"c4bound",cap:"(a) 兩個晶粒的方位不同，交界處約數個原子寬，原子排列不匹配。(b) 雙晶界兩側的原子位置互為鏡像。(c) FCC 的最密堆積面應該依 ABCABC… 堆疊，中間少了一層就形成疊差。",
+  points:[
+   ["外表面","晶體結構在此終止。表面原子的鄰居比內部少，有未滿足的鍵，能量較高，形成表面能（J/m²）。液體會變成球形來減少表面積，固體則無法改變形狀。"],
+   ["晶界","分隔方位不同之晶粒的界面，約數個原子寬。方位差只有幾度的叫小角度晶界，可看成差排的排列：刃差排排成傾斜晶界、螺旋差排排成扭轉晶界。"],
+   ["晶界能","晶界上的原子鍵結較不規則，有晶界能；方位差越大，晶界能越大。因此晶界的化學活性較高，雜質容易偏析到晶界。粗晶材料的總晶界面積較小、總晶界能較低，高溫時晶粒會長大以降低總能量。"],
+   ["相界與雙晶界","相界分隔兩個不同的相。雙晶界是特殊的晶界，兩側原子互為鏡像，兩個雙晶界之間的區域稱為雙晶。機械雙晶由剪力造成（BCC、HCP），退火雙晶出現在變形後的退火處理（多見於 FCC）。"],
+   ["其他面缺陷與能量大小","疊差：FCC 的 ABCABC… 堆疊順序被打斷。磁區壁：分隔不同磁化方向的區域。界面能通常以外表面最大、磁區壁最小。"]],
+  qs:[
+   {t:"mc",s:"一般而言，下列哪一種界面的界面能最大？",o:["外表面","晶界","雙晶界","磁區壁"],a:0,e:"外表面的原子少了最多鄰居、未滿足的鍵最多，所以界面能最大；磁區壁最小。"},
+   {t:"mc",s:"同一種金屬做成細晶粒與粗晶粒兩個試片，哪一個的總晶界能比較大？",o:["細晶粒，因為總晶界面積比較大","粗晶粒，因為每個晶界比較長","兩者一樣，晶界能與晶粒大小無關","無法比較"],a:0,e:"晶粒越細，單位體積內的晶界面積越大，總晶界能越大。這也是高溫時晶粒會長大的原因。"},
+   {t:"mc",s:"單晶的表面能與晶面方位有關。原子排列較密（面密度較高）的晶面，表面能會比較大還是比較小？（課本 Concept Check 4.3）",o:["比較大，因為原子比較多","比較小，因為面內鄰居比較多、未滿足的鍵比較少","和面密度無關","只和溫度有關"],a:1,e:"面密度越高，表面原子在面內的最近鄰越多，未滿足的鍵越少，所以表面能越低。"}
+  ]},
+ {code:"4-H",title:"顯微鏡技術",en:"Microscopic Examination",ref:"§4.9–4.10",
+  terms:["microstructure","microscopy","photomicrograph","transmission electron microscope (TEM)","scanning electron microscope (SEM)","scanning probe microscope (SPM)"],
+  fig:"c4micro",cap:"(a) 金屬不透光，光學顯微鏡用反射模式觀察。不同方位的晶粒蝕刻速率不同，表面傾角不同，反射回顯微鏡的光就不同；晶界處蝕刻成凹槽，把光反射到旁邊，看起來是暗線。(b) 各種顯微技術可觀察尺寸的概略範圍（依課本圖 4.16 重繪，上限並不嚴格）。",
+  points:[
+   ["顯微組織","晶粒的大小、形狀等需要用顯微鏡才看得到的結構特徵，稱為顯微組織。觀察它可以用來了解結構與性質的關係、預測性質、設計合金、確認熱處理是否正確、判斷破壞模式。"],
+   ["光學顯微鏡（金相）","不透光的材料用反射模式觀察表面。試片要先研磨、拋光到鏡面，再用化學藥劑蝕刻。不同方位的晶粒蝕刻結果不同，所以亮度不同；晶界原子活性高、蝕刻較快，形成凹槽而呈暗線。最大放大倍率約 2000×。"],
+   ["穿透式電子顯微鏡 TEM","電子束穿過極薄的試片（薄膜）成像，可看到內部結構；影像對比來自散射或繞射的差異。放大倍率可接近 1,000,000×，常用來觀察差排。"],
+   ["掃描式電子顯微鏡 SEM","電子束掃描試片表面，收集反射（背向散射）電子成像。試片必須導電，不導電的材料要鍍一層極薄的金屬膜。放大倍率 10× 到 50,000× 以上，景深很大，配件還可以做局部成分分析。"],
+   ["掃描探針顯微鏡 SPM","不用光也不用電子，而是用極尖的探針在距表面約 1 nm 處掃描，記錄探針的偏移，由電腦產生三維表面形貌圖。放大倍率可達 10⁹×，可以在真空、空氣或液體中操作。"]],
+  qs:[
+   {t:"mc",s:"想要觀察金屬內部的差排，最適合用哪一種顯微鏡？",o:["光學顯微鏡","掃描式電子顯微鏡 SEM","穿透式電子顯微鏡 TEM","肉眼"],a:2,e:"TEM 的電子束穿過薄膜試片，可以看到內部結構，課本圖 4.7 的差排照片就是用 TEM 拍的。"},
+   {t:"mc",s:"拋光蝕刻後的多晶金屬，在光學顯微鏡下晶界為什麼是暗線？",o:["晶界含有較多雜質，會吸收光","晶界原子較活潑，蝕刻後形成凹槽，把光反射到其他方向","晶界是透明的","晶界的密度比晶粒低很多"],a:1,e:"晶界蝕刻較快形成凹槽，凹槽的斜面把光反射離開物鏡，所以看起來是暗的。"},
+   {t:"mc",s:"用 SEM 觀察陶瓷（不導電）試片前，通常要先做什麼？",o:["把試片磨成極薄的薄膜","在表面鍍一層極薄的金屬膜","把試片泡在液體中","不需要任何處理"],a:1,e:"SEM 的試片表面必須導電，否則電荷會累積；不導電的材料要鍍上薄薄一層金屬。磨成薄膜是 TEM 的試片準備。"}
+  ]},
+ {code:"4-I",title:"晶粒大小的測定",en:"Grain-Size Determination",ref:"§4.11",
+  terms:["grain size","ASTM grain-size number"],
+  fig:"c4grain",cap:"截線法：在顯微照片上畫測試線，數出測試線與晶界的交點數 P。這張示意照片畫了四條 50 mm 的測試線，比例尺 100 μm 量起來長 10 mm，所以放大倍率 M = 100×。",
+  points:[
+   ["截線法","在多張相同倍率的顯微照片上畫直線，數出所有線與晶界的交點總數 P。測試線總長 L_T，平均截距長度 ℓ = L_T / (P M)，可代表平均晶粒直徑（實際尺寸）。"],
+   ["ASTM 比較法","與 ASTM 標準比較圖（都在 100× 拍攝）對照，取最接近的圖號作為晶粒度號數 G（1 到 10）。在 100× 下，每平方英吋的晶粒數 n = 2^(G−1)。G 越大，晶粒越細。"],
+   ["倍率不是 100× 時","n_M = 2^(G−1) (100/M)²。倍率是長度的比例，面積要用平方，所以每平方英吋的晶粒數隨倍率的平方改變。"],
+   ["截距長度與 G 的換算","G = −6.6457 log ℓ − 3.298（ℓ 用 mm）；G = −6.6353 log ℓ − 12.6（ℓ 用 in.）。"],
+   ["由比例尺求倍率","① 用尺量比例尺的長度（mm）；② 乘 1000 換成 μm；③ M = 量到的長度（μm）/ 比例尺上標示的數字（μm）。例：量到 16 mm、標示 100 μm → M = 16000/100 = 160×。"]],
+  formulas:[["ℓ = L_T / (P M)","平均截距長度（式 4.16）"],["n = 2^(G−1)","100× 下每平方英吋晶粒數（式 4.17）"],["n_M = 2^(G−1) (100/M)²","其他倍率（式 4.18）"],["G = −6.6457 log ℓ − 3.298","ℓ 用 mm（式 4.19a）"],["M = 量到的比例尺長度 / 標示長度","單位都換成 μm（式 4.20）"]],
+  qs:[
+   {t:"num",s:"在 100× 的顯微照片上，平均每平方英吋有 45 個晶粒。ASTM 晶粒度號數 G 是多少？",u:"",a:6.49,tol:1,h:"n = 2^(G−1) → G = 1 + log n / log 2。",sol:"45 = 2^(G−1)\nG − 1 = log 45 / log 2 = 1.6532 / 0.3010 = 5.49\nG = 6.49"},
+   {t:"num",s:"在 200× 的顯微照片上，平均每平方英吋有 30 個晶粒。ASTM 晶粒度號數 G 是多少？",u:"",a:7.91,tol:1,h:"n_M = 2^(G−1)(100/M)²，先換算成 100× 時的晶粒數。",sol:"30 = 2^(G−1)(100/200)² → 2^(G−1) = 30 × 4 = 120\nG = 1 + log 120 / log 2 = 1 + 6.91 = 7.91"},
+   {t:"mc",s:"晶粒越細，ASTM 晶粒度號數 G 會變大還是變小？（課本 Concept Check 4.4）",o:["變大","變小","不變","不一定"],a:0,e:"晶粒越細，100× 下每平方英吋的晶粒數 n 越多；n = 2^(G−1)，所以 G 越大。"}
+  ]}
+ ],
+ vocab:[
+  ["缺陷的分類",[["imperfection","n.","缺陷",1],["defect","n.","缺陷",1],["point defect","n.","點缺陷",1],["linear defect","n.","線缺陷",1],["interfacial defect","n.","面缺陷",1],["bulk (volume) defect","n.","體缺陷"],["pore","n.","孔洞"],["crack","n.","裂縫"],["inclusion","n.","夾雜物"],["atomic vibration","n.","原子振動"],["amplitude","n.","振幅"],["frequency","n.","頻率"]]],
+  ["點缺陷",[["vacancy","n.","空位",1],["self-interstitial","n.","自身間隙原子",1],["interstitial site","n.","間隙位置",1],["equilibrium","n.","平衡",1],["formation energy","n.","形成能"],["Boltzmann's constant","n.","波茲曼常數",1],["absolute temperature","n.","絕對溫度"],["exponential","adj.","指數的"],["entropy","n.","熵"],["lattice distortion","n.","晶格扭曲",1]]],
+  ["雜質與固溶體",[["impurity","n.","雜質",1],["alloy","n.","合金",1],["solid solution","n.","固溶體",1],["solvent","n.","溶劑",1],["solute","n.","溶質",1],["host atom","n.","主體原子"],["substitutional","adj.","取代型的",1],["interstitial","adj.","間隙型的",1],["solubility","n.","溶解度",1],["electronegativity","n.","電負度"],["valence","n.","價數"],["intermetallic compound","n.","金屬間化合物"],["octahedral","adj.","八面體的"],["tetrahedral","adj.","四面體的"],["lattice strain","n.","晶格應變"]]],
+  ["成分",[["composition","n.","成分",1],["concentration","n.","濃度",1],["weight percent","n.","重量百分比",1],["atom percent","n.","原子百分比",1],["atomic weight","n.","原子量",1],["mole","n.","莫耳"],["conversion","n.","換算"],["average density","n.","平均密度"]]],
+  ["差排",[["dislocation","n.","差排",1],["edge dislocation","n.","刃差排",1],["screw dislocation","n.","螺旋差排",1],["mixed dislocation","n.","混合差排",1],["dislocation line","n.","差排線",1],["Burgers vector","n.","布格向量",1],["extra half-plane","n.","多出的半原子面",1],["slip plane","n.","滑移面"],["shear stress","n.","剪應力",1],["helical","adj.","螺旋狀的"],["plastic deformation","n.","塑性變形",1]]],
+  ["面缺陷",[["external surface","n.","外表面"],["surface energy","n.","表面能",1],["grain boundary","n.","晶界",1],["misorientation","n.","方位差"],["small-angle grain boundary","n.","小角度晶界"],["tilt boundary","n.","傾斜晶界"],["twist boundary","n.","扭轉晶界"],["phase boundary","n.","相界"],["twin boundary","n.","雙晶界",1],["mirror image","n.","鏡像"],["annealing","n.","退火",1],["stacking fault","n.","疊差"],["segregate","v.","偏析"]]],
+  ["顯微鏡與晶粒",[["microstructure","n.","顯微組織",1],["microscopy","n.","顯微術",1],["photomicrograph","n.","顯微照片"],["magnification","n.","放大倍率",1],["resolution","n.","解析度",1],["polish","v.","拋光"],["etching","n.","蝕刻",1],["optical microscope","n.","光學顯微鏡",1],["transmission electron microscope","n.","穿透式電子顯微鏡",1],["scanning electron microscope","n.","掃描式電子顯微鏡",1],["scanning probe microscope","n.","掃描探針顯微鏡"],["grain size","n.","晶粒大小",1],["intercept","n.","截距"],["scale bar","n.","比例尺"]]]
+ ],
+ practice:[]
+};
+/* 實力加強區：等第 10 版第 4 章習題檔，先用課本例題與觀念題 */
+const G4ell=200/(G4Q.P*100),G4G=-6.6457*Math.log10(G4ell)-3.298;
+CH4.practice=[
+ {grp:"空位",ref:"例題 4.1",t:"num",pk:"p_ex4_1",s:"計算銅在 1000 °C 時每立方公尺的平衡空位數。空位形成能 0.9 eV/atom；銅的原子量 63.5 g/mol、1000 °C 時密度 8.4 g/cm³。",u:"個/m³",a:2.2e25,tol:4,sci:true,h:"先用 N = N_A ρ / A 求原子位置數（ρ 乘 10⁶ 換成 m³），再代入 N_v = N exp(−Q_v / kT)。",sol:"N = (6.022×10²³)(8.4 g/cm³)(10⁶ cm³/m³) / 63.5\n  = 8.0×10²⁸ atoms/m³\nN_v = (8.0×10²⁸) exp[−0.9 / (8.62×10⁻⁵ × 1273)]\n    = 2.2×10²⁵ 空位/m³"},
+ {grp:"固溶體與間隙",ref:"例題 4.2",t:"open",pk:"p_ex4_2",sfig:"c4sites",s:"計算剛好塞進 BCC 八面體間隙（不產生晶格應變）的雜質原子半徑 r，以主體原子半徑 R 表示。（參考上圖 (a)）",h:"八面體間隙在晶胞邊的中點；沿著邊：2R + 2r = a，BCC 的 a = 4R/√3。",ans:"晶胞邊長 a = 4R/√3\n沿著邊：a = 2R + 2r\n2R + 2r = 4R/√3\nr = (2/√3 − 1)R = 0.155R"},
+ {ref:"觀念題 4.1",t:"mc",pk:"p_cc4_1",s:"三種或更多種元素可以形成固溶體嗎？",o:["可以，只要各溶質原子都能在不形成新相的情況下溶入溶劑","不可以，固溶體只能有兩種元素","只有間隙型固溶體可以","只有陶瓷可以"],a:0,e:"可以。固溶體的條件是晶體結構不變、不形成新相；溶質可以不只一種，例如不鏽鋼中同時溶有 Cr、Ni 等元素。"},
+ {ref:"觀念題 4.2",t:"mc",pk:"p_cc4_2",s:"為什麼取代型固溶體可能完全互溶，間隙型固溶體卻不可能？",o:["間隙型的溶質原子比較重","取代型的兩種原子可以任意比例佔據同一組晶格位置；間隙型的溶質必須比溶劑小很多，溶劑原子無法反過來塞進溶質的間隙","間隙型的溶質會和溶劑起化學反應","取代型固溶體只有一種原子"],a:1,e:"完全互溶表示兩種原子在任何比例下都能互換角色。取代型可以；間隙型的溶質原子必須非常小，間隙數量與大小都有限，溶劑原子也不可能塞進間隙，所以溶解度有上限。"},
+ {grp:"成分換算",ref:"例題 4.3",t:"open",pk:"p_ex4_3",s:"推導 wt% 換算 at% 的公式：C₁′ = C₁A₂ / (C₁A₂ + C₂A₁) × 100。",h:"假設合金總質量 M′ 克，先寫出各元素的質量與莫耳數，再代入 at% 的定義。",ans:"合金總質量 M′ = m₁′ + m₂′\n由 wt% 定義：m₁′ = C₁M′/100，m₂′ = C₂M′/100\n莫耳數：n_m1 = m₁′/A₁ = C₁M′/(100A₁)，n_m2 = C₂M′/(100A₂)\nC₁′ = n_m1 / (n_m1 + n_m2) × 100\n    = [C₁/A₁] / [C₁/A₁ + C₂/A₂] × 100\n分子分母同乘 A₁A₂：\nC₁′ = C₁A₂ / (C₁A₂ + C₂A₁) × 100"},
+ {ref:"例題 4.4",t:"multi",pk:"p_ex4_4",s:"某合金含 97 wt% 鋁、3 wt% 銅（A_Al = 26.98、A_Cu = 63.55 g/mol）。計算兩者的原子百分比。",parts:[["C′_Al","at%",98.7,0.5],["C′_Cu","at%",1.30,2]],h:"C′_Al = C_Al A_Cu / (C_Al A_Cu + C_Cu A_Al) × 100。",sol:"C′_Al = (97)(63.55) / [(97)(63.55) + (3)(26.98)] × 100\n      = 98.7 at%\nC′_Cu = (3)(26.98) / [(3)(26.98) + (97)(63.55)] × 100\n      = 1.30 at%"},
+ {grp:"面缺陷",ref:"觀念題 4.3",t:"mc",pk:"p_cc4_3",s:"單晶的表面能與晶面方位有關。面密度越高的晶面，表面能會增加還是減少？",o:["增加","減少","不變","先增加後減少"],a:1,e:"面密度越高，表面原子在面內的鄰居越多，未滿足的鍵越少，所以表面能越低。"},
+ {grp:"晶粒大小",ref:"仿例題 4.5",t:"multi",pk:"p_ex4_5",sfig:"c4grainQ",s:"上圖為某金屬的示意顯微照片。四條測試線在照片上各長 50 mm，比例尺「100 μm」在照片上量起來長 10 mm。數出測試線與晶界的交點（藍點），計算 (a) 放大倍率 M (b) 交點總數 P (c) 平均截距長度 ℓ (d) ASTM 晶粒度號數 G。",parts:[["(a) M","×",100,1],["(b) P","個",G4Q.P,0],["(c) ℓ","mm",+G4ell.toFixed(4),3],["(d) G","",+G4G.toFixed(2),1.5]],h:"M = 10000 μm / 100 μm；ℓ = L_T / (P M)，L_T = 4 × 50 mm；G = −6.6457 log ℓ − 3.298。",sol:"(a) M = (10 mm × 1000 μm/mm) / 100 μm = 100×\n(b) 四條線的交點："+G4Q.lines.map(l=>l.xs.length).join(" + ")+" = "+G4Q.P+"\n(c) ℓ = L_T / (P M) = 200 mm / ("+G4Q.P+" × 100) = "+G4ell.toFixed(4)+" mm\n(d) G = −6.6457 log("+G4ell.toFixed(4)+") − 3.298 = "+G4G.toFixed(2)},
+ {ref:"觀念題 4.4",t:"mc",pk:"p_cc4_4",s:"晶粒越細，ASTM 晶粒度號數 G 增加還是減少？為什麼？",o:["增加，因為 100× 下每平方英吋的晶粒數 n 變多，而 n = 2^(G−1)","減少，因為晶粒變小","不變，G 只和材料種類有關","減少，因為晶界變多"],a:0,e:"晶粒越細，同樣面積裡的晶粒越多，n 越大，G 也越大。"}
+];
+CH4.moreRange="第 4 章";
+
+const CHAPTERS=[CH2,CH3,CH4];
 
 /* ================= State & helpers ================= */
 const KEY="matsci-wb-v4";
