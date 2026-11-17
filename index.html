@@ -2224,7 +2224,8 @@ function trChanged(n){const c=chp(n);c.changed=Date.now();state.prog.last=Date.n
 function trRecord(ch,key,ok){const c=chp(ch.num),r=c.qs[key]||{ok:false,tries:0};const wasOk=!!r.ok,prevTries=r.tries||0;r.tries=prevTries+1;r.ok=!!(r.ok||ok);c.qs[key]=r;trSummary(ch);trChanged(ch.num);
   if(window.GAME&&ok&&!wasOk){const q=(allQs(ch).find(x=>x[0]===key)||[])[1]||{};const zi=/^z(\d+)-/.exec(key);const z=zi?ch.zones[+zi[1]]:null;
     GAME.answer({id:K(ch,key),ok:true,first:prevTries===0,practice:key.startsWith("p_"),wasWrong:prevTries>0,kind:q.t==="open"?"open":"auto",zone:z?{key:"c"+ch.num+"-"+z.code,label:z.code+" "+z.title}:null});
-    if(window.GAME)GAME.setWeak(weakZone())}}
+    if(window.GAME)GAME.setWeak(weakZone())}
+  else if(window.GAME&&!ok&&!wasOk&&((allQs(ch).find(x=>x[0]===key)||[])[1]||{}).t!=="open")GAME.wrong({id:K(ch,key)})}
 function weakZone(){let best=null;const touched=CHAPTERS.filter(c=>Object.keys(chp(c.num).qs||{}).length);(touched.length?touched:[CHAPTERS[cur]||CHAPTERS[0]]).forEach(c=>{const cq=chp(c.num).qs||{};c.zones.forEach((z,zi)=>{const n=z.qs.length;const ok=z.qs.filter((_,qi)=>cq["z"+zi+"-"+qi]&&cq["z"+zi+"-"+qi].ok).length;const f=ok/n;if(ok<n&&(!best||f<best.f))best={f,key:"c"+c.num+"-"+z.code,label:"第 "+c.num+" 章 "+z.code+" "+z.title}})});return best?{key:best.key,label:best.label}:null}
 setInterval(()=>{const ch=CHAPTERS[cur];if(ch&&document.visibilityState==="visible"&&Date.now()-TR.lastAct<120000){chp(ch.num).time=(chp(ch.num).time||0)+5;if(window.GAME&&state.prog.sid)GAME.time(5);TR.dirty=true;if(Math.random()<0.25){save();updSubmit()}}},5000);
 setInterval(srvSave,60000);
@@ -2336,7 +2337,7 @@ function wireFeedback(ch){
 }
 
 {const m=location.hash.match(/^#ch(\d+)$/);let qch="";try{qch=new URLSearchParams(location.search).get("ch")||""}catch(e){}const want=window.__CH?+window.__CH:(qch?+qch:(m?+m[1]:0));const i=want?CHAPTERS.findIndex(c=>c.num===want):-1;cur=i>=0?i:0;render(cur);}
-if(window.GAME){GAME.onLoginRequest=showLogin;GAME.retroCount=()=>CHAPTERS.reduce((s,c)=>s+Object.values(chp(c.num).qs||{}).filter(r=>r.ok).length,0);GAME.setWeak(weakZone());GAME.init({mount:document.querySelector("header.top")});updScores(CHAPTERS[cur])}
+if(window.GAME){GAME.onLoginRequest=showLogin;GAME.onGuide=z=>{const m=/^c(\d+)-(.+)$/.exec(z.key);if(!m)return;const ci=CHAPTERS.findIndex(c=>String(c.num)===m[1]);if(ci<0)return;const zi=CHAPTERS[ci].zones.findIndex(x=>x.code===m[2]);go(ci);setTimeout(()=>{const el=$("sec-z"+zi);if(el)el.scrollIntoView({behavior:smooth(),block:"start"})},150)};GAME.retroCount=()=>CHAPTERS.reduce((s,c)=>s+Object.values(chp(c.num).qs||{}).filter(r=>r.ok).length,0);GAME.setWeak(weakZone());GAME.init({mount:document.querySelector("header.top")});updScores(CHAPTERS[cur])}
 </script>
 
 </body>

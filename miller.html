@@ -812,7 +812,7 @@ function panelPractice(){const chips=PCATS.map(([k,n])=>`<button class="pchip" d
 function pCheck(){const q=PR.q,I=q.input;let a=PR.ans;
   if(I.kind==="num"){a=parseNum(PR.ans);if(isNaN(a)){PR.fb=`<div class="fb no">請輸入數字，例如 0.2338 或 1/2。</div>`;renderPanel();return}}
   if(I.kind==="mc"&&a==null){PR.fb=`<div class="fb no">請先選一個答案。</div>`;renderPanel();return}
-  const r=q.check(a);PR.tries++;PR.lastOk=r.ok;tally(r.ok);if(r.ok&&!q.gAw&&window.GAME&&GAME.state().sid){q.gAw=1;GAME.miller(true,PR.tries===1)}
+  const r=q.check(a);PR.tries++;PR.lastOk=r.ok;tally(r.ok);if(r.ok&&!q.gAw&&window.GAME&&GAME.state().sid){q.gAw=1;GAME.miller(true,PR.tries===1)}else if(!r.ok&&!q.gW&&!q.gAw&&window.GAME&&GAME.state().sid){q.gW=1;GAME.wrong({id:"m-"+q.type+"-"+Date.now()})}
   if(r.ok){PR.rev=true;PR.fb=`<div class="fb ok"><b>答對了！</b>${PR.tries>1?"（第 "+PR.tries+" 次答對，本回只算第一次的結果）":""}${r.note||""}</div>`;rebuild()}
   else PR.fb=`<div class="fb no"><b>再想想。</b>${r.note||q.hint}${PR.tries>=2?"　也可以按「看詳解」。":""}</div>`;
   renderPanel()}
