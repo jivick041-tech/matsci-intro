@@ -6,7 +6,8 @@
 const SAVE_URL="https://script.google.com/macros/s/AKfycbxdty7M2R94i6-U_0SKF-ca8I1tQ-ROGE60gInag7uyXEYP-uLg_hzRAgEi5BRMfxsYjg/exec";
 const GKEY="matsci-game-v1",WBKEY="matsci-wb-v4";
 const ONLINE=/^https?:$/.test(location.protocol);
-const DAY_CAP=400;               /* 每天由作答取得的經驗值上限 */
+const DAY_CAP=150;               /* 每天可得修為上限（作答＋任務＋登入），避免臨時抱佛腳一天衝完 */
+const IDLE_GRACE=2;              /* 連續沒上線 2 天內不罰，第 3 天起才長心魔 */
 const ACTIVE_XP=20;              /* 一天至少拿到這麼多經驗值才算「有練習」 */
 
 /* ---------- 等級與稱號 ---------- */
@@ -52,7 +53,7 @@ const TOOLS={
  qingxin:["清心丹","🍵","c","回血：心魔 −30。"],
  tianji:["天機卷","📜","c","指引：帶你到目前最弱的觀念區，並護住下一次答錯（不生心魔）。"],
  juling:["聚靈陣","🌀","r","接下來答對的 5 題，修為加倍。"],
- biguan:["閉關符","🧘","r","自動使用：漏掉一天時抵銷心魔，並保住連續天數。"],
+ biguan:["閉關符","🧘","r","自動使用：連續沒上線超過 2 天時，抵銷一天的心魔。"],
  pojing:["破境丹","💊","e","立即提升一個小境界（不受心魔阻擋）。"]
 };
 const TOOLW=[["qingxin",35],["tianji",25],["juling",20],["biguan",12],["pojing",8]];
@@ -99,14 +100,17 @@ function ensureDay(){
     /* 上次有練功之後、到昨天為止，完全沒練功的天數（已結算過的不重算） */
     const start=(G.settled&&G.settled>G.lastActive)?G.settled:G.lastActive;
     const missed=Math.min(30,Math.max(0,dayDiff(start,t)-1));
-    if(missed>0){let used=0,dem=0,loss=0;
+    const off=dayDiff(G.lastActive,start);   /* 這段空窗中，已結算過的天數 */
+    if(missed>0){let used=0,dem=0,loss=0,pen=0;
       for(let i=0;i<missed;i++){
+        if(off+i+1<=IDLE_GRACE)continue;      /* 寬限期 */
+        pen++;
         if((G.tools.biguan||0)>0){G.tools.biguan--;used++;continue}
         const b=G.demon||0;G.demon=Math.min(100,b+IDLE_DEM);dem+=G.demon-b;
         if(G.demon>=60){const l=Math.max(5,Math.round(eff()*(G.demon>=90?.06:.03)));const real=Math.min(l,eff());G.lost=(G.lost||0)+real;loss+=real}
       }
-      if(used===missed&&!(G.settled&&G.settled>G.lastActive))G.lastActive=yest;else if(used<missed)G.streak=0;
-      pendingNotice={missed,used,dem,loss};
+      G.streak=0;
+      if(pen>0)pendingNotice={missed:off+missed,used,pen,dem,loss};
     }
     G.settled=yest;
   }
@@ -122,11 +126,11 @@ let ui=null;
 function gain(x,why,{capped=true,silent=false,force=false}={}){
   ensureDay();if(x<=0)return 0;
   if(!force){const m=demOf(G.demon||0)[4];if(m<1)x=Math.max(1,Math.round(x*m))}
-  if(capped){const room=DAY_CAP-G.day.cap;if(room<=0){if(!G.day.capMsg){G.day.capMsg=1;toast("今天的修為已達上限，明天再來！","info")}return 0}x=Math.min(x,room);G.day.cap+=x}
+  if(capped){const room=DAY_CAP-G.day.cap;if(room<=0){if(!G.day.capMsg){G.day.capMsg=1;celebrate("🌙 今日修為已滿","今天已經得到 "+DAY_CAP+" 修為的上限。今天再寫的題目仍然會記錄在練習簿，但不再加修為——把還沒寫的題目留到明天，修為才不會浪費！","n")}return 0}x=Math.min(x,room);G.day.cap+=x}
   const before=lvOf(eff()).lv;
-  if(!force&&(G.demon||0)>=60&&before<MAXLV){const nextRealm=(realmIdx(before)+1)*3+1;const wall=cumTo(nextRealm)-1;if(eff()+x>wall){x=Math.max(0,wall-eff());if(!G.day.wallMsg){G.day.wallMsg=1;setTimeout(()=>celebrate("⛓️ 道心不穩，無法突破","心魔 ≥ 60 時無法突破到「"+REALMS[realmIdx(nextRealm)]+"」。多答對題目、完成任務，或服用清心丹降低心魔；破境丹可以強行突破。","r"),300)}}}
+  if(!force&&(G.demon||0)>=60&&before<MAXLV){const nextRealm=(realmIdx(before)+1)*3+1;const wall=cumTo(nextRealm)-1;if(eff()+x>wall){x=Math.max(0,wall-eff());if(!G.day.wallMsg){G.day.wallMsg=1;setTimeout(()=>celebrate("⛓️ 道心不穩，無法突破","心魔 ≥ 60 時無法突破到「"+REALMS[realmIdx(nextRealm)]+"」。多答對題目、完成任務，或服用清心丹降低心魔；破境丹可以強行突破。","n"),300)}}}
   G.xp+=x;G.day.xp+=x;G.ver++;
-  if(!G.day.active&&(G.day.cap>=ACTIVE_XP||G.day.q.some(q=>q.done))){G.day.active=true;markActive()}
+  if(!G.day.active&&((G.day.cap-(G.day.loginX||0))>=ACTIVE_XP||G.day.q.some(q=>q.done))){G.day.active=true;markActive()}
   if(!silent&&x>0)toast("+"+x+" 修為"+(why?"　"+why:""),"xp");
   const after=lvOf(eff()).lv;if(after>before){for(let L=before+1;L<=after;L++)levelUp(L)}
   store();sync();render();return x;
@@ -155,11 +159,11 @@ function drop(min,source){
 }
 
 /* ---------- 事件（頁面呼叫） ---------- */
-function quest(k,inc=1,match){ensureDay();let changed=false;G.day.q.forEach(q=>{if(q.k!==k||q.done)return;if(match&&!match(q))return;q.n+=inc;changed=true;if(q.n>=QUESTS[q.k][1]){q.done=true;if(!G.day.active){G.day.active=true;markActive()}gain(QREWARD,"任務完成：「"+qText(q)+"」",{capped:false});demonChange(-5)}});
-  if(changed&&!G.day.all&&G.day.q.every(q=>q.done)){G.day.all=true;gain(QALL,"今日任務全部完成！",{capped:false});demonChange(-10);setTimeout(()=>drop("r","寶箱"),900)}
+function quest(k,inc=1,match){ensureDay();let changed=false;G.day.q.forEach(q=>{if(q.k!==k||q.done)return;if(match&&!match(q))return;q.n+=inc;changed=true;if(q.n>=QUESTS[q.k][1]){q.done=true;if(!G.day.active){G.day.active=true;markActive()}gain(QREWARD,"任務完成：「"+qText(q)+"」");demonChange(-5)}});
+  if(changed&&!G.day.all&&G.day.q.every(q=>q.done)){G.day.all=true;gain(QALL,"今日任務全部完成！");demonChange(-10);setTimeout(()=>drop("r","寶箱"),900)}
   if(changed){store();render()}}
 function qText(q){return QUESTS[q.k][0].replace("{z}",q.z?q.z.label:"")}
-function dailyLogin(){ensureDay();if(G.day.login)return;G.day.login=true;const bonus=10+Math.min(20,2*(G.streak||0));gain(bonus,"今日上山修煉"+(G.streak?"（連續加成）":""),{capped:false})}
+function dailyLogin(){ensureDay();if(G.day.login)return;G.day.login=true;G.day.loginX=0;const bonus=10+Math.min(20,2*(G.streak||0));G.day.loginX=gain(bonus,"今日上山修煉"+(G.streak?"（連續加成）":""))}
 
 /* answer: {id, ok, first, practice, zone:{key,label}, wasWrong, kind:"open"|"auto"} */
 function onAnswer(a){
@@ -210,8 +214,8 @@ function merge(r){
 }
 function gload(){const sid=G.sid;if(!sid||!ONLINE){loadedFor=sid;afterLoad();return}jsonp({action:"gload",u:sid},txt=>{if(G.sid!==sid)return;if(txt){try{merge(JSON.parse(txt))}catch(e){}}loadedFor=sid;afterLoad();store();render();sync(true)})}
 function afterLoad(){dailyLogin();const n=API.retroCount?API.retroCount():0;if(n>0&&!G.aw.retro){G.aw.retro=1;gain(n*4,"既有進度回溯獎勵（"+n+" 題）",{capped:false})}showNotice()}
-function showNotice(){if(!pendingNotice||!document.body)return;const n=pendingNotice;pendingNotice=null;if(n.used===n.missed){toast("🧘 閉關符抵銷了 "+n.used+" 天沒練功的心魔","item");return}
-  celebrate("🌫️ 久未修煉，心魔滋生","你有 "+n.missed+" 天沒有練功"+(n.used?"（閉關符抵銷了 "+n.used+" 天）":"")+"，心魔 +"+n.dem+(n.loss?"，修為倒退 "+n.loss:"")+"。今天答對題目、完成任務就能化解。","r")}
+function showNotice(){if(!pendingNotice||!document.body)return;const n=pendingNotice;pendingNotice=null;if(n.used===n.pen){toast("🧘 閉關符抵銷了 "+n.used+" 天沒練功的心魔","item");return}
+  celebrate("🌫️ 久未修煉，心魔滋生","你已經 "+n.missed+" 天沒有練功（超過 "+IDLE_GRACE+" 天才開始長心魔）"+(n.used?"（閉關符抵銷了 "+n.used+" 天）":"")+"，心魔 +"+n.dem+(n.loss?"，修為倒退 "+n.loss:"")+"。今天答對題目、完成任務就能化解。","n")}
 function sync(now){clearTimeout(syncT);syncT=setTimeout(push,now?50:4000)}
 function push(){const p=wbProg();if(!ONLINE||!G.sid||!p.sname||loadedFor!==G.sid||saving)return;const L=lvOf(eff()).lv;saving=true;const st=demOf(G.demon||0);
   const body={kind:"game",sid:G.sid,sname:p.sname,nick:G.nick,lv:L,title:(G.demon>=60?"入魔・":"")+titleOf(L)+"｜心魔"+(G.demon||0),xp:G.xp,streak:G.streak,best:G.best,days:G.activeDays||0,items:Object.keys(G.items).length+" / "+ITEMS.length,data:JSON.stringify(G)};
@@ -276,14 +280,14 @@ function toast(msg,kind){if(!document.body)return;if(!toastBox){toastBox=documen
 const celeQ=[];let celeOn=false;
 function celebrate(title,body,rar,source){celeQ.push([title,body,rar,source]);if(!celeOn)nextCele()}
 function nextCele(){const c=celeQ.shift();if(!c){celeOn=false;return}celeOn=true;const[title,body,rar]=c;const R=RAR[rar]||RAR.c;const m=title.match(/^(\S+)\s(.*)$/u);const icon=m&&/\p{Extended_Pictographic}/u.test(m[1])?m[1]:"⭐";const t=m&&icon!=="⭐"?m[2]:title;
-  const ov=modal(`<div class="gcele"><div class="gbig">${icon}</div><h3>${esc(t)}</h3><span class="grar" style="background:${R[1]}">${R[0]}</span><p>${esc(body)}</p><button class="gbtn gok" data-gclose>收下</button></div>`,()=>setTimeout(nextCele,150))}
+  const ov=modal(`<div class="gcele"><div class="gbig">${icon}</div><h3>${esc(t)}</h3>${rar==="n"?"":`<span class="grar" style="background:${R[1]}">${R[0]}</span>`}<p>${esc(body)}</p><button class="gbtn gok" data-gclose>${rar==="n"?"知道了":"收下"}</button></div>`,()=>setTimeout(nextCele,150))}
 function modal(html,onClose){const ov=document.createElement("div");ov.className="gov";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.innerHTML=`<div class="gcard">${html}</div>`;
   const close=()=>{ov.remove();onClose&&onClose()};ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest("[data-gclose]"))close()});ov.addEventListener("keydown",e=>{if(e.key==="Escape")close()});document.body.appendChild(ov);const f=ov.querySelector("button,input");f&&f.focus();return ov}
 
 function barHTML(){const s=lvOf(eff()),t=titleOf(s.lv);ensureDay();const left=G.day.q.filter(q=>!q.done).length;const d=G.demon||0,st=demOf(d);const ev=d>=90?"abyss":d>=60?"evil":"";
   const rn=s.lv>=MAXLV?"飛升":REALMS[realmIdx(s.lv)].slice(0,2),sg=s.lv>=MAXLV?"":STAGES[(s.lv-1)%3].slice(0,1);
   return `<div class="lvb r ${ev}" aria-label="境界 ${t}"><small>${sg}</small>${rn}</div>
-   <div class="gmid"><div class="gt">${esc(G.nick||"（尚未取道號）")}・${d>=60?"入魔・":""}${t}</div><div class="gsub">${s.next?`修為 ${s.into} / ${s.next}`:"已飛升"}・累積 ${G.xp}${G.lost?`（損耗 ${G.lost}）`:""}${G.cata?`・🌀 加倍剩 ${G.cata} 題`:""}${G.shield?"・📜 護心中":""}</div><div class="xpb"><i style="width:${s.next?(s.into/s.next*100).toFixed(1):100}%"></i></div></div>
+   <div class="gmid"><div class="gt">${esc(G.nick||"（尚未取道號）")}・${d>=60?"入魔・":""}${t}</div><div class="gsub">${s.next?`修為 ${s.into} / ${s.next}`:"已飛升"}・今日 ${Math.min(G.day.cap,DAY_CAP)} / ${DAY_CAP}・累積 ${G.xp}${G.lost?`（損耗 ${G.lost}）`:""}${G.cata?`・🌀 加倍剩 ${G.cata} 題`:""}${G.shield?"・📜 護心中":""}</div><div class="xpb"><i style="width:${s.next?(s.into/s.next*100).toFixed(1):100}%"></i></div></div>
    <div class="dem" title="心魔：答錯、久未練功會增加；答對、完成任務、清心丹會降低"><div class="dl"><span>${st[2]} ${st[1]}</span><span>心魔 ${d}</span></div><div class="db"><i style="width:${d}%;background:${st[3]}"></i></div></div>
    <div class="gst" title="連續練功天數">🔥 ${G.streak||0} 天</div>
    <div class="gbtns"><button class="gbtn" data-gp="quest">📋 每日任務${left?`<span class="dot">${left}</span>`:" ✓"}</button><button class="gbtn" data-gp="bag">🎒 法寶丹藥</button><button class="gbtn" data-gp="board">🏆 排行榜</button><button class="gbtn" data-gp="rule" aria-label="修煉規則">❓</button></div>`}
@@ -306,9 +310,9 @@ function openPanel(which){if(openOv)openOv.remove();ensureDay();let h="";
   if(which==="rule"){const L=lvOf(eff()).lv;h=`<button class="gx" data-gclose aria-label="關閉">×</button><h3>📜 修煉規則</h3><div class="grule">
     <h4>⛰️ 修仙之路（加分）</h4><ul><li>答對題目得到修為：第一次就答對 +10、實力加強區 +15、重試才答對 +4、3D 教具 +6。</li><li>每日任務每個 +${QREWARD}，全部完成再 +${QALL} 並開寶箱。每天第一次上山另有登入加成，連續天數越多越高。</li><li>修為累積到一定程度就升一個小境界；每 3 個小境界突破一個大境界：</li></ul>
     <div class="grealm">${REALMS.map((r,i)=>`<span class="${realmIdx(L)===i?"on":""}">${r}</span>`).join("")}<span class="${L>=MAXLV?"on":""}">飛升</span></div>
-    <h4>😈 成魔之路（扣分）</h4><ul><li>答錯一題（每題只算第一次）心魔 +${WRONG_DEM}，每天最多 +${WRONG_DEM*WRONG_CAP}。</li><li>一整天沒有練功，心魔 +${IDLE_DEM}。</li><li>心魔 30 以上「心魔滋生」：修為獲得 ×0.8。</li><li>心魔 60 以上「走火入魔」：修為獲得 ×0.6、無法突破大境界，而且每天沒練功修為倒退 3%。</li><li>心魔 90 以上「墮入魔道」：修為獲得 ×0.5，每天沒練功修為倒退 6%。</li></ul>
-    <h4>☯️ 化解心魔</h4><ul><li>每答對一題心魔 −${RIGHT_HEAL}；完成一個每日任務 −5，全部完成再 −10。</li><li>🍵 清心丹：心魔 −30。📜 天機卷：指引最弱的觀念區，並護住下一次答錯。</li><li>🧘 閉關符：漏掉一天時自動使用。🌀 聚靈陣：接下來 5 題修為加倍。💊 破境丹：直接提升一個小境界。</li></ul>
-    <p class="gsub" style="margin-top:10px">每天由作答得到的修為上限 ${DAY_CAP}，一次刷很多題也無法無限加分。</p></div>`}
+    <h4>😈 成魔之路（扣分）</h4><ul><li>答錯一題（每題只算第一次）心魔 +${WRONG_DEM}，每天最多 +${WRONG_DEM*WRONG_CAP}。</li><li>連續 ${IDLE_GRACE} 天沒上線不會扣；從第 ${IDLE_GRACE+1} 天起，每多一天沒練功心魔 +${IDLE_DEM}（閉關符可抵銷一天）。</li><li>心魔 30 以上「心魔滋生」：修為獲得 ×0.8。</li><li>心魔 60 以上「走火入魔」：修為獲得 ×0.6、無法突破大境界，而且每天沒練功修為倒退 3%。</li><li>心魔 90 以上「墮入魔道」：修為獲得 ×0.5，每天沒練功修為倒退 6%。</li></ul>
+    <h4>☯️ 化解心魔</h4><ul><li>每答對一題心魔 −${RIGHT_HEAL}；完成一個每日任務 −5，全部完成再 −10。</li><li>🍵 清心丹：心魔 −30。📜 天機卷：指引最弱的觀念區，並護住下一次答錯。</li><li>🧘 閉關符：沒上線第 3 天起自動使用，抵銷一天心魔。🌀 聚靈陣：接下來 5 題修為加倍。💊 破境丹：直接提升一個小境界。</li></ul>
+    <p class="gsub" style="margin-top:10px">🌙 每天最多獲得 ${DAY_CAP} 修為（作答、任務、登入都算）。題目數量有限，一天寫完就沒了——每天寫一些，修為才會一直進帳。超過上限後作答仍會記錄在練習簿，只是不加修為。</p></div>`}
   openOv=modal(h,()=>{openOv=null});
   openOv.querySelectorAll("[data-guse]").forEach(b=>b.onclick=()=>useTool(b.dataset.guse));
   openOv.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{const it=itemById(b.dataset.gi);openOv.querySelector("#gdesc").innerHTML=`<b>${it[3]} ${esc(it[1])}</b>（${RAR[it[2]][0]} ${"★".repeat(G.items[it[0]])}）<br>${esc(it[4])}`});
