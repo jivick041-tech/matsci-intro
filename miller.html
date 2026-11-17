@@ -147,6 +147,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script src="game.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -811,7 +812,7 @@ function panelPractice(){const chips=PCATS.map(([k,n])=>`<button class="pchip" d
 function pCheck(){const q=PR.q,I=q.input;let a=PR.ans;
   if(I.kind==="num"){a=parseNum(PR.ans);if(isNaN(a)){PR.fb=`<div class="fb no">請輸入數字，例如 0.2338 或 1/2。</div>`;renderPanel();return}}
   if(I.kind==="mc"&&a==null){PR.fb=`<div class="fb no">請先選一個答案。</div>`;renderPanel();return}
-  const r=q.check(a);PR.tries++;PR.lastOk=r.ok;tally(r.ok);
+  const r=q.check(a);PR.tries++;PR.lastOk=r.ok;tally(r.ok);if(r.ok&&!q.gAw&&window.GAME&&GAME.state().sid){q.gAw=1;GAME.miller(true,PR.tries===1)}
   if(r.ok){PR.rev=true;PR.fb=`<div class="fb ok"><b>答對了！</b>${PR.tries>1?"（第 "+PR.tries+" 次答對，本回只算第一次的結果）":""}${r.note||""}</div>`;rebuild()}
   else PR.fb=`<div class="fb no"><b>再想想。</b>${r.note||q.hint}${PR.tries>=2?"　也可以按「看詳解」。":""}</div>`;
   renderPanel()}
@@ -828,6 +829,7 @@ $("panel").addEventListener("change",e=>{if(S.tab!=="practice")return;const t=e.
 $("panel").addEventListener("input",e=>{if(S.tab!=="practice")return;const t=e.target;if(t.dataset.pin)PR.ans=t.value});
 $("panel").addEventListener("keydown",e=>{if(S.tab==="practice"&&e.target.dataset&&e.target.dataset.pin&&e.key==="Enter"){e.preventDefault();pCheck()}});
 newRound();
+if(window.GAME)GAME.init({mount:document.querySelector("header.top")});
 
 
 /* ================= tabs ================= */

@@ -278,6 +278,7 @@ a.toolbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 
+<script src="game.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -2163,7 +2164,7 @@ function setupMasks(){
   document.querySelectorAll("[data-col],[data-tcol]").forEach(td=>{td.onclick=()=>reveal(td);td.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();reveal(td)}}});
   document.querySelectorAll("[data-vf]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-vf]").forEach(x=>x.setAttribute("aria-pressed",x===b));$("vtab").classList.toggle("onlymust",b.dataset.vf==="must")});
   const cnt=()=>{const all=[...document.querySelectorAll("[data-star]")];const mu=all.filter(b=>b.closest("tr").dataset.must==="1");$("vcount").textContent=`必背已熟記 ${mu.filter(b=>state.star[b.dataset.star]).length} / ${mu.length}・全部 ${all.filter(b=>state.star[b.dataset.star]).length} / ${all.length}`};
-  document.querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{const k=b.dataset.star;state.star[k]=!state.star[k];save();b.setAttribute("aria-pressed",state.star[k]);b.textContent=state.star[k]?"已熟記 ✓":"已熟記";cnt()});
+  document.querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{const k=b.dataset.star;state.star[k]=!state.star[k];save();if(state.star[k]&&window.GAME&&state.prog.sid)GAME.vocab();b.setAttribute("aria-pressed",state.star[k]);b.textContent=state.star[k]?"已熟記 ✓":"已熟記";cnt()});
   cnt();
 }
 
@@ -2171,7 +2172,7 @@ function updScores(ch){
   const qs=allQs(ch),isOk=k=>state.q[K(ch,k)]&&state.q[K(ch,k)].ok;
   const ok=qs.filter(([k])=>isOk(k)).length;
   $("ovNum").textContent=ok;$("ovTot").textContent=qs.length;$("ovBar").style.width=(ok/qs.length*100)+"%";
-  ch.zones.forEach((z,zi)=>{const n=z.qs.filter((_,qi)=>isOk("z"+zi+"-"+qi)).length;const el=$("zs-"+zi);if(el){el.textContent=`${n} / ${z.qs.length}`;el.classList.toggle("full",n===z.qs.length)}});
+  const cq=chp(ch.num).qs||{};ch.zones.forEach((z,zi)=>{const n=z.qs.filter((_,qi)=>isOk("z"+zi+"-"+qi)).length;const f=z.qs.filter((_,qi)=>{const r=cq["z"+zi+"-"+qi];return r&&r.ok&&r.tries===1}).length;const el=$("zs-"+zi);if(el){el.innerHTML=`${n} / ${z.qs.length}`+(window.GAME?`<span class="gstars" title="熟練度：全部答對且三分之二以上第一次就答對可得三顆星">${GAME.stars(n,f,z.qs.length)}</span>`:"");el.classList.toggle("full",n===z.qs.length)}});
   const pn=ch.practice.filter(q=>isOk(q.pk)).length;const pe=$("zs-p");if(pe){pe.textContent=`${pn} / ${ch.practice.length}`;pe.classList.toggle("full",pn===ch.practice.length)}
   renderRail();
 }
@@ -2209,7 +2210,7 @@ const SAVE_URL="https://script.google.com/macros/s/AKfycbxdty7M2R94i6-U_0SKF-ca8
 const SRV=(typeof google!=="undefined"&&google.script&&google.script.run)?google.script.run:(SAVE_URL&&/^https?:$/.test(location.protocol)?(()=>{
   const call=(fn)=>{const h={};const o={withSuccessHandler(f){h.s=f;return o},withFailureHandler(f){h.f=f;return o},
     saveProgress(p){fetch(SAVE_URL,{method:"POST",mode:"no-cors",keepalive:true,credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)}).then(()=>h.s&&h.s(true),()=>h.f&&h.f())},
-    loadProgress(sid){fetch(SAVE_URL+"?action=load&sid="+encodeURIComponent(sid),{credentials:"omit"}).then(r=>r.ok?r.text():Promise.reject()).then(t=>h.s&&h.s(t),()=>h.f&&h.f())}};return o};
+    loadProgress(sid){const nm="__wl"+Math.random().toString(36).slice(2),sc=document.createElement("script");let done=false;const fin=(ok,t)=>{if(done)return;done=true;try{delete window[nm]}catch(e){}sc.remove();ok?(h.s&&h.s(t)):(h.f&&h.f())};window[nm]=t=>fin(true,t);sc.onerror=()=>fin(false);setTimeout(()=>fin(false),15000);sc.src=SAVE_URL+"?action=load&u="+encodeURIComponent(sid)+"&cb="+nm;document.head.appendChild(sc)}};return o};
   return {withSuccessHandler(f){return call().withSuccessHandler(f)},withFailureHandler(f){return call().withFailureHandler(f)}};
 })():null);
 const TR={owner:false,dash:false,lastAct:Date.now(),dirty:false,saving:false,saved:0,err:false,loadedFor:"",timer:0};
@@ -2220,8 +2221,12 @@ state.prog.visits=(state.prog.visits||0)+1;state.prog.last=Date.now();save();
 function chp(n){const k=String(n);const c=state.prog.ch[k]=state.prog.ch[k]||{time:0,qs:{},self:{},rating:0,comment:"",first:Date.now(),changed:0};return c}
 function trSummary(ch){const c=chp(ch.num),qs=allQs(ch);c.total=qs.length;c.done=qs.filter(([k])=>c.qs[k]).length;c.correct=qs.filter(([k])=>c.qs[k]&&c.qs[k].ok).length}
 function trChanged(n){const c=chp(n);c.changed=Date.now();state.prog.last=Date.now();save();TR.dirty=true;clearTimeout(TR.timer);TR.timer=setTimeout(srvSave,3000);updSubmit()}
-function trRecord(ch,key,ok){const c=chp(ch.num),r=c.qs[key]||{ok:false,tries:0};r.tries=(r.tries||0)+1;r.ok=!!(r.ok||ok);c.qs[key]=r;trSummary(ch);trChanged(ch.num)}
-setInterval(()=>{const ch=CHAPTERS[cur];if(ch&&document.visibilityState==="visible"&&Date.now()-TR.lastAct<120000){chp(ch.num).time=(chp(ch.num).time||0)+5;TR.dirty=true;if(Math.random()<0.25){save();updSubmit()}}},5000);
+function trRecord(ch,key,ok){const c=chp(ch.num),r=c.qs[key]||{ok:false,tries:0};const wasOk=!!r.ok,prevTries=r.tries||0;r.tries=prevTries+1;r.ok=!!(r.ok||ok);c.qs[key]=r;trSummary(ch);trChanged(ch.num);
+  if(window.GAME&&ok&&!wasOk){const q=(allQs(ch).find(x=>x[0]===key)||[])[1]||{};const zi=/^z(\d+)-/.exec(key);const z=zi?ch.zones[+zi[1]]:null;
+    GAME.answer({id:K(ch,key),ok:true,first:prevTries===0,practice:key.startsWith("p_"),wasWrong:prevTries>0,kind:q.t==="open"?"open":"auto",zone:z?{key:"c"+ch.num+"-"+z.code,label:z.code+" "+z.title}:null});
+    if(window.GAME)GAME.setWeak(weakZone())}}
+function weakZone(){let best=null;const touched=CHAPTERS.filter(c=>Object.keys(chp(c.num).qs||{}).length);(touched.length?touched:[CHAPTERS[cur]||CHAPTERS[0]]).forEach(c=>{const cq=chp(c.num).qs||{};c.zones.forEach((z,zi)=>{const n=z.qs.length;const ok=z.qs.filter((_,qi)=>cq["z"+zi+"-"+qi]&&cq["z"+zi+"-"+qi].ok).length;const f=ok/n;if(ok<n&&(!best||f<best.f))best={f,key:"c"+c.num+"-"+z.code,label:"第 "+c.num+" 章 "+z.code+" "+z.title}})});return best?{key:best.key,label:best.label}:null}
+setInterval(()=>{const ch=CHAPTERS[cur];if(ch&&document.visibilityState==="visible"&&Date.now()-TR.lastAct<120000){chp(ch.num).time=(chp(ch.num).time||0)+5;if(window.GAME&&state.prog.sid)GAME.time(5);TR.dirty=true;if(Math.random()<0.25){save();updSubmit()}}},5000);
 setInterval(srvSave,60000);
 ["pointerdown","keydown","scroll","input"].forEach(ev=>addEventListener(ev,()=>{TR.lastAct=Date.now()},{passive:true}));
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){save();srvSave()}});
@@ -2297,7 +2302,7 @@ function trBadge(){
   const el=$("syncbox");if(!el)return;const p=state.prog;
   el.innerHTML=`<div class="idrow"><span class="pill">練習者</span><label for="sid">學號</label><input id="sid" value="${esc(p.sid||"")}" autocomplete="off"><label for="sname">姓名</label><input id="sname" value="${esc(p.sname||"")}" autocomplete="off"><button class="b ghost" id="saveid">儲存</button><span class="fmt" id="idmsg"></span></div>
    <div class="fmt">${SRV?"練習時間、作答結果、自評與回饋會自動儲存並傳給老師，不需要另外提交。換一台裝置時，輸入同一個學號就能接續進度。":"練習時間、作答結果、自評與回饋會自動記錄在這台裝置。練習結束時，請按畫面底部的「提交練習紀錄」，在開啟的 Google 表單中直接按「提交」，老師才收得到。可以多次提交，以最新一次為準。"}</div>`;
-  $("saveid").onclick=()=>{const old=p.sid;p.sid=$("sid").value.trim().slice(0,30);p.sname=$("sname").value.trim().slice(0,30);save();$("idmsg").textContent=p.sid&&p.sname?"已儲存":"請填寫學號與姓名";if(p.sid&&p.sid!==old)srvLoad();else{TR.dirty=true;srvSave()}updSubmit();refreshInline()};
+  $("saveid").onclick=()=>{const old=p.sid;p.sid=$("sid").value.trim().slice(0,30);p.sname=$("sname").value.trim().slice(0,30);save();$("idmsg").textContent=p.sid&&p.sname?"已儲存":"請填寫學號與姓名";if(p.sid&&p.sid!==old)srvLoad();else{TR.dirty=true;srvSave()}updSubmit();refreshInline();if(window.GAME)GAME.refreshUser()};
 }
 function refreshInline(){document.querySelectorAll(".subslot").forEach(s=>{const ch=CHAPTERS.find(x=>String(x.num)===s.dataset.ch);if(ch){s.innerHTML=submitHTML(ch);wireSubmit(s)}})}
 function showLogin(){
@@ -2307,7 +2312,7 @@ function showLogin(){
    <div class="rows"><div class="row"><label class="lab" for="lsid">學號</label><input id="lsid" value="${esc(p.sid||"")}" autocomplete="off"></div><div class="row"><label class="lab" for="lsname">姓名</label><input id="lsname" value="${esc(p.sname||"")}" autocomplete="off"></div></div>
    <div class="fmt" id="lmsg"></div><div class="acts"><button class="b" id="lok">開始練習</button><button class="b ghost" id="llater">稍後再填</button></div></div>`;
   document.body.appendChild(d);setTimeout(()=>$("lsid").focus(),50);
-  const ok=()=>{const a=$("lsid").value.trim(),b=$("lsname").value.trim();if(!a||!b){$("lmsg").textContent="請填寫學號與姓名。";return}const old=p.sid;p.sid=a.slice(0,30);p.sname=b.slice(0,30);save();d.remove();trBadge();updSubmit();refreshInline();if(SRV&&(p.sid!==old||TR.loadedFor!==p.sid))srvLoad()};
+  const ok=()=>{const a=$("lsid").value.trim(),b=$("lsname").value.trim();if(!a||!b){$("lmsg").textContent="請填寫學號與姓名。";return}const old=p.sid;p.sid=a.slice(0,30);p.sname=b.slice(0,30);save();d.remove();trBadge();updSubmit();refreshInline();if(SRV&&(p.sid!==old||TR.loadedFor!==p.sid))srvLoad();if(window.GAME)GAME.refreshUser()};
   $("lok").onclick=ok;d.addEventListener("keydown",e=>{if(e.key==="Enter")ok();if(e.key==="Escape")d.remove()});$("llater").onclick=()=>d.remove();
 }
 
@@ -2320,8 +2325,8 @@ function feedbackHTML(ch){const c=chp(ch.num);return `<section class="step" id="
   ${SRV?`<div class="remind"><b>你的回饋會自動傳給老師。</b>不需要另外按提交，畫面底部會顯示儲存狀態。<div class="acts subslot" data-ch="${ch.num}">${submitHTML(ch)}</div></div>`
        :`<div class="remind"><b>練習結束了嗎？記得提交。</b>按下按鈕會開啟老師的 Google 表單，資料已自動填好，確認後按表單最下方的「提交」即可。<div class="acts subslot" data-ch="${ch.num}">${submitHTML(ch)}</div></div>`}</section>`}
 function wireFeedback(ch){
-  document.querySelectorAll(".selfbox").forEach(box=>box.querySelectorAll("[data-self]").forEach(b=>b.onclick=()=>{chp(ch.num).self[box.dataset.zone]=b.dataset.self;box.querySelectorAll("[data-self]").forEach(x=>x.setAttribute("aria-pressed",x===b));trChanged(ch.num)}));
-  document.querySelectorAll("[data-rate]").forEach(b=>b.onclick=()=>{chp(ch.num).rating=+b.dataset.rate;document.querySelectorAll("[data-rate]").forEach(x=>x.setAttribute("aria-pressed",x===b));trChanged(ch.num)});
+  document.querySelectorAll(".selfbox").forEach(box=>box.querySelectorAll("[data-self]").forEach(b=>b.onclick=()=>{chp(ch.num).self[box.dataset.zone]=b.dataset.self;if(window.GAME&&state.prog.sid)GAME.self(ch.num+"-"+box.dataset.zone);box.querySelectorAll("[data-self]").forEach(x=>x.setAttribute("aria-pressed",x===b));trChanged(ch.num)}));
+  document.querySelectorAll("[data-rate]").forEach(b=>b.onclick=()=>{chp(ch.num).rating=+b.dataset.rate;if(window.GAME&&state.prog.sid)GAME.rate(ch.num);document.querySelectorAll("[data-rate]").forEach(x=>x.setAttribute("aria-pressed",x===b));trChanged(ch.num)});
   if($("fbtext"))$("fbtext").addEventListener("input",()=>{chp(ch.num).comment=$("fbtext").value.trim().slice(0,500);trChanged(ch.num)});
   wireSubmit();
   if(!$("subbar")){const b=document.createElement("div");b.id="subbar";b.className="subbar";document.body.appendChild(b)}
@@ -2331,6 +2336,7 @@ function wireFeedback(ch){
 }
 
 {const m=location.hash.match(/^#ch(\d+)$/);let qch="";try{qch=new URLSearchParams(location.search).get("ch")||""}catch(e){}const want=window.__CH?+window.__CH:(qch?+qch:(m?+m[1]:0));const i=want?CHAPTERS.findIndex(c=>c.num===want):-1;cur=i>=0?i:0;render(cur);}
+if(window.GAME){GAME.onLoginRequest=showLogin;GAME.retroCount=()=>CHAPTERS.reduce((s,c)=>s+Object.values(chp(c.num).qs||{}).filter(r=>r.ok).length,0);GAME.setWeak(weakZone());GAME.init({mount:document.querySelector("header.top")});updScores(CHAPTERS[cur])}
 </script>
 
 </body>
