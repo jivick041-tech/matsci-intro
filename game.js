@@ -235,6 +235,7 @@ const css=`.pvcard{max-width:640px!important;width:min(640px,calc(100vw - 32px))
 .pvlist{max-height:300px;overflow:auto;border:1px solid var(--g-line);border-radius:8px}
 .pvi{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--g-line)}
 .pvi:last-child{border-bottom:0}.pvi .gbtn{flex:none}
+.pvdue.urgent{color:#c0392b;font-weight:600}.gbtn.pulse{animation:pvpulse 1.6s ease-in-out infinite}@keyframes pvpulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 6px rgba(192,57,43,0)}}@media (prefers-reduced-motion:reduce){.gbtn.pulse{animation:none}}
 .pvdm{font-size:12px;color:#7b1fa2;font-weight:600}
 .pvhud{margin:6px 0 10px}.pvrow{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--g-mut)}
 .pvt.low{color:#c0392b;font-weight:700}
@@ -316,7 +317,7 @@ function barHTML(){const s=lvOf(eff()),t=titleOf(s.lv);ensureDay();const left=G.
    <div class="gmid"><div class="gt">${esc(G.nick||"（尚未取道號）")}・${d>=60?"入魔・":""}${t}</div><div class="gsub">${s.next?`修為 ${s.into} / ${s.next}`:"已飛升"}・今日 ${Math.min(G.day.cap,DAY_CAP)} / ${DAY_CAP}・累積 ${G.xp}${G.lost?`（損耗 ${G.lost}）`:""}${G.cata?`・🌀 加倍剩 ${G.cata} 題`:""}${G.shield?"・📜 護心中":""}</div><div class="xpb"><i style="width:${s.next?(s.into/s.next*100).toFixed(1):100}%"></i></div></div>
    <div class="dem" title="心魔：答錯、久未練功會增加；答對、完成任務、清心丹會降低"><div class="dl"><span>${st[2]} ${st[1]}</span><span>心魔 ${d}</span></div><div class="db"><i style="width:${d}%;background:${st[3]}"></i></div></div>
    <div class="gst" title="連續練功天數">🔥 ${G.streak||0} 天</div>
-   <div class="gbtns"><button class="gbtn" data-gp="quest">📋 每日任務${left?`<span class="dot">${left}</span>`:" ✓"}</button><button class="gbtn" data-gp="bag">🎒 法寶丹藥</button>${API.qbank?`<button class="gbtn" data-gp="pvp">⚔️ 論道${PD&&PD.pending&&PD.pending.length?`<span class="dot">${PD.pending.length}</span>`:""}</button>`:""}<button class="gbtn" data-gp="board">🏆 排行榜</button><button class="gbtn" data-gp="rule" aria-label="修煉規則">❓</button></div>`}
+   <div class="gbtns"><button class="gbtn" data-gp="quest">📋 每日任務${left?`<span class="dot">${left}</span>`:" ✓"}</button><button class="gbtn" data-gp="bag">🎒 法寶丹藥</button>${API.qbank?`<button class="gbtn${PD&&PD.pending&&PD.pending.length?" pulse":""}" data-gp="pvp">⚔️ 論道${PD&&PD.pending&&PD.pending.length?`<span class="dot">${PD.pending.length}</span>`:""}</button>`:""}<button class="gbtn" data-gp="board">🏆 排行榜</button><button class="gbtn" data-gp="rule" aria-label="修煉規則">❓</button></div>`}
 let bars=[];
 function mount(el){injectCSS();const b=document.createElement("div");b.className="gbar";el.parentNode.insertBefore(b,el.nextSibling);bars.push(b);b.addEventListener("click",e=>{const x=e.target.closest("[data-gp]");if(x)openPanel(x.dataset.gp)});render()}
 function render(){bars.forEach(b=>{const d=G.demon||0;b.classList.toggle("evil",!!G.sid&&d>=60&&d<90);b.classList.toggle("abyss",!!G.sid&&d>=90);if(!G.sid){b.innerHTML=`<div class="gmid"><div class="gt">⛰️ 登入後開始修煉：答對題目累積修為、突破境界</div><div class="gsub">輸入學號與姓名，境界會跟著學號在手機與電腦之間同步。</div></div><button class="gbtn" data-glogin>登入</button>`;const l=b.querySelector("[data-glogin]");l.onclick=()=>API.onLoginRequest?API.onLoginRequest():loginModal();return}b.innerHTML=barHTML()})}
@@ -338,7 +339,7 @@ function openPanel(which){if(which==="pvp"){pvPanel();return}if(openOv)openOv.re
     <div class="grealm">${REALMS.map((r,i)=>`<span class="${realmIdx(L)===i?"on":""}">${r}</span>`).join("")}<span class="${L>=MAXLV?"on":""}">飛升</span></div>
     <h4>😈 成魔之路（扣分）</h4><ul><li>答錯一題（每題只算第一次）心魔 +${WRONG_DEM}，每天最多 +${WRONG_DEM*WRONG_CAP}。</li><li>連續 ${IDLE_GRACE} 天沒上線不會扣；從第 ${IDLE_GRACE+1} 天起，每多一天沒練功心魔 +${IDLE_DEM}（閉關符可抵銷一天）。</li><li>心魔 30 以上「心魔滋生」：修為獲得 ×0.8。</li><li>心魔 60 以上「走火入魔」：修為獲得 ×0.6、無法突破大境界，而且每天沒練功修為倒退 3%。</li><li>心魔 90 以上「墮入魔道」：修為獲得 ×0.5，每天沒練功修為倒退 6%。</li></ul>
     <h4>☯️ 化解心魔</h4><ul><li>每答對一題心魔 −${RIGHT_HEAL}；完成一個每日任務 −5，全部完成再 −10。</li><li>🍵 清心丹：心魔 −30。📜 天機卷：指引最弱的觀念區，並護住下一次答錯。</li><li>🧘 閉關符：沒上線第 3 天起自動使用，抵銷一天心魔。🌀 聚靈陣：接下來 5 題修為加倍。💊 破境丹：直接提升一個小境界。</li></ul>
-    <h4>⚔️ 論道堂（同學互動）</h4><ul><li>論道對決：向同學下戰帖，兩人各寫同樣 5 題，答對多者勝（一樣多比速度）。勝 +20 修為、平手 +10、敗 +5。每天 3 張戰帖，3 天沒應戰就作廢。</li><li>降魔吸靈：心魔 ≥ 60 的同學會散發魔氣，答對 3 題中的 2 題就能吸取，修為 +15。每天 2 次。</li><li>心魔試煉：每天一次，限時答題擊敗心魔，勝利得修為 +30、心魔 −10 與一顆丹藥。</li><li>輸贏只影響「論道積分」與論道榜（勝 +20／敗 −20、吸取 +10／被吸取 −10），<b>不會扣任何人的修為</b>。論道得到的修為也算在每天的上限內。</li></ul><p class="gsub" style="margin-top:10px">🌙 每天最多獲得 ${DAY_CAP} 修為（作答、任務、登入都算）。題目數量有限，一天寫完就沒了——每天寫一些，修為才會一直進帳。超過上限後作答仍會記錄在練習簿，只是不加修為。</p></div>`}
+    <h4>⚔️ 論道堂（同學互動）</h4><ul><li>論道對決：向同學下戰帖，兩人各寫同樣 5 題，答對多者勝（一樣多比速度）。勝 +20 修為、平手 +10、敗 +5。每天 3 張戰帖。收到戰帖 3 天內沒應戰就「避戰判負」（論道積分 −20），應戰本身就有 +5 修為。</li><li>降魔吸靈：心魔 ≥ 60 的同學會散發魔氣，答對 3 題中的 2 題就能吸取，修為 +15。每天 2 次。</li><li>心魔試煉：每天一次，限時答題擊敗心魔，勝利得修為 +30、心魔 −10 與一顆丹藥。</li><li>輸贏只影響「論道積分」與論道榜（勝 +20／敗 −20、吸取 +10／被吸取 −10），<b>不會扣任何人的修為</b>。論道得到的修為也算在每天的上限內。</li></ul><p class="gsub" style="margin-top:10px">🌙 每天最多獲得 ${DAY_CAP} 修為（作答、任務、登入都算）。題目數量有限，一天寫完就沒了——每天寫一些，修為才會一直進帳。超過上限後作答仍會記錄在練習簿，只是不加修為。</p></div>`}
   openOv=modal(h,()=>{openOv=null});
   openOv.querySelectorAll("[data-guse]").forEach(b=>b.onclick=()=>useTool(b.dataset.guse));
   openOv.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{const it=itemById(b.dataset.gi);openOv.querySelector("#gdesc").innerHTML=`<b>${it[3]} ${esc(it[1])}</b>（${RAR[it[2]][0]} ${"★".repeat(G.items[it[0]])}）<br>${esc(it[4])}`});
@@ -357,23 +358,24 @@ function loginModal(){const p=wbProg();const ov=modal(`<button class="gx" data-g
 
 /* ---------- 同學互動：論道對決、降魔吸靈、心魔試煉（輸贏只動論道積分，不扣修為） ---------- */
 const PV={duelQ:5,absQ:3,absNeed:2,absTry:3,trialQ:8,trialHearts:3,trialSec:20,
-  rWin:20,rTie:10,rLose:5,rAbs:15,rTrial:30,rTrialLose:5};
-let PD=null,pvBusy=false;           /* 伺服器回傳的論道資料 */
+  rWin:20,rTie:10,rLose:5,rForfeit:10,rAccept:5,rAbs:15,rTrial:30,rTrialLose:5};
+let PD=null,pvBusy=false,pvShown=0;           /* 伺服器回傳的論道資料 */
 function pv(){if(!G.pvp||typeof G.pvp!=="object")G.pvp={c:{},seenAbs:0,trial:"",absTry:{}};G.pvp.c=G.pvp.c||{};G.pvp.absTry=G.pvp.absTry||{};return G.pvp}
 function pvCall(params,cb){if(!G.sid){cb({err:"請先登入"});return}if(!ONLINE){cb({err:"離線中，無法連線"});return}jsonp(Object.assign({action:"pvp",u:G.sid},params),txt=>{let r=null;try{r=JSON.parse(txt)}catch(e){}cb(r||{err:"連線失敗，請稍後再試"})})}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function bank(ch){const all=(API.qbank&&API.qbank())||[];return ch?all.filter(q=>String(q.ch)===String(ch)):all}
 function pickQs(n,ch){let b=bank(ch);if(!ch){const t=b.filter(q=>q.touched);if(t.length>=n*2)b=t}return shuffle(b).slice(0,n)}
 /* 領取對決結果的獎勵（每場只領一次） */
-function pvClaim(list){const P=pv();let n=0;(list||[]).forEach(r=>{if(P.c[r.id]||r.exp)return;P.c[r.id]=1;n++;
+function pvClaim(list){const P=pv();let n=0;(list||[]).forEach(r=>{if(P.c[r.id])return;P.c[r.id]=1;n++;
+  if(r.exp){if(r.role==="from")gain(PV.rForfeit,"「"+r.nick+"」避戰，不戰而勝");else celebrate("⌛ 避戰判負","你沒有在 3 天內接下「"+r.nick+"」的戰帖，這場判你輸，論道積分 −20。下次收到戰帖記得上來應戰！","n");return}
   if(r.win>0){gain(PV.rWin,"論道勝利：勝過「"+r.nick+"」");demonChange(-3)}else if(r.win===0)gain(PV.rTie,"論道平手：與「"+r.nick+"」");else gain(PV.rLose,"論道參與：敗給「"+r.nick+"」，下次再戰")});
   if(n){store();sync()}}
 function pvRefresh(cb){pvCall({op:"home"},r=>{if(!r.err){PD=r;const P=pv();
-    pvClaim((r.results||[]).filter(x=>x.role==="from"&&x.op!=null));
+    pvClaim((r.results||[]).filter(x=>x.role==="from"&&(x.op!=null||x.exp)||x.role==="to"&&x.exp));
     const fresh=(r.absorbed||[]).filter(a=>a.at>(P.seenAbs||0));
     if(fresh.length){P.seenAbs=Math.max(...fresh.map(a=>a.at));store();sync();
       celebrate("😈 魔氣被吸走了","你久未修煉、心魔太重，"+[...new Set(fresh.map(a=>"「"+a.nick+"」"))].join("、")+" 吸走了你的魔氣，你的論道積分 −"+10*fresh.length+"。修為沒有減少，但快回來答題、降低心魔吧！","n")}
-    if((r.pending||[]).length&&!G.day.duelMsg){G.day.duelMsg=1;toast("⚔️ 有 "+r.pending.length+" 張戰帖等你應戰","item")}
+    if((r.pending||[]).length&&!pvShown&&!openOv){pvShown=1;duelAlert(r.pending)}
     render()}cb&&cb(r)})}
 
 /* ---------- 出題視窗（對決、降魔、試煉共用） ---------- */
@@ -419,22 +421,28 @@ function pvPanel(tab){if(tab)pvTab=tab;if(openOv)openOv.remove();ensureDay();
   pvRefresh(r=>{if(!ov.isConnected)return;if(r.err){body.innerHTML=`<p class="gsub">${r.err==="nouser"?"你的修煉紀錄還沒上傳到伺服器，先答幾題、稍等一下再來。":esc(r.err)}</p>`;return}
     ov.querySelectorAll("[data-pt]").forEach(b=>{if(b.dataset.pt==="duel")b.innerHTML="論道對決"+(r.pending.length?` <span class="dot">${r.pending.length}</span>`:"")});
     if(pvTab==="duel"){body.innerHTML=duelHTML(r);bindDuel(body,r)}else{body.innerHTML=absHTML(r);bindAbs(body,r)}})}
+const remain=t=>{const h=Math.max(0,(t-Date.now())/36e5);return h<1?"不到 1 小時":h<24?"剩 "+Math.ceil(h)+" 小時":"剩 "+Math.floor(h/24)+" 天 "+Math.ceil(h%24)+" 小時"};
+function duelAlert(list){const ov=modal(`<button class="gx" data-gclose aria-label="關閉">×</button><div class="pvtrial"><div class="pvbig">⚔️</div><h3>有人向你下戰帖！</h3></div>
+  ${list.map(p=>`<div class="pvi"><div><b>${esc(p.nick)}</b> 向你挑戰<div class="gsub pvdue${p.due-Date.now()<864e5?" urgent":""}" style="margin:0">⏳ ${remain(p.due)}，逾時沒應戰就<b>判你輸</b></div></div></div>`).join("")}
+  <div class="gsub" style="margin-top:10px">應戰就有 +${PV.rAccept} 修為；贏了再 +${PV.rWin}，輸了也有 +${PV.rLose}。避戰判負：論道積分 −20，還什麼都拿不到。</div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:12px"><button class="gbtn gok" id="pvgo">立即應戰</button><button class="gbtn" data-gclose>等一下</button></div>`,()=>{});
+  ov.querySelector("#pvgo").onclick=()=>{ov.remove();pvPanel("duel")}}
 const ago=t=>{const m=Math.round((Date.now()-t)/6e4);return m<60?m+" 分鐘前":m<1440?Math.round(m/60)+" 小時前":Math.round(m/1440)+" 天前"};
 function chOpts(){const m=new Map();bank().forEach(q=>m.set(String(q.ch),q.chName));return `<option value="">綜合（我讀過的章節）</option>`+[...m].map(([k,n])=>`<option value="${k}">${esc(n)}</option>`).join("")}
 function duelHTML(r){const me=r.me;const left=Math.max(0,3-me.sent);
   return `<div class="pvme">我的論道積分 <b>${me.rating}</b>・${me.w} 勝 ${me.l} 敗${me.t?" "+me.t+" 和":""}</div>
-  ${r.pending.length?`<h4>📨 收到的戰帖</h4>${r.pending.map(p=>`<div class="pvi"><div><b>${esc(p.nick)}</b> 向你下戰帖<div class="gsub" style="margin:0">${PV.duelQ} 題・${ago(p.at)}・3 天內沒應戰就作廢</div></div><button class="gbtn gok" data-acc="${p.id}">應戰</button></div>`).join("")}`:""}
+  ${r.pending.length?`<h4>📨 收到的戰帖</h4>${r.pending.map(p=>`<div class="pvi"><div><b>${esc(p.nick)}</b> 向你下戰帖<div class="gsub pvdue${p.due-Date.now()<864e5?" urgent":""}" style="margin:0">${PV.duelQ} 題・⏳ ${remain(p.due)}，逾時判負</div></div><button class="gbtn gok" data-acc="${p.id}">應戰</button></div>`).join("")}`:""}
   <h4>✉️ 發出戰帖 <span class="gsub" style="margin:0">今天還剩 ${left} 張</span></h4>
-  <div class="gsub">你先寫 ${PV.duelQ} 題，對手之後寫同樣的題目。答對多的人勝，一樣多就比速度。勝 +${PV.rWin} 修為、平手 +${PV.rTie}、輸了也有 +${PV.rLose}。</div>
+  <div class="gsub">你先寫 ${PV.duelQ} 題，對手之後寫同樣的題目。答對多的人勝，一樣多就比速度。勝 +${PV.rWin} 修為、平手 +${PV.rTie}、輸了也有 +${PV.rLose}。對手 3 天內沒應戰就判他避戰輸，你不戰而勝（修為 +${PV.rForfeit}）。</div>
   <div class="pvform"><input class="gin" id="pvq" placeholder="搜尋道號"><select class="gin" id="pvch">${chOpts()}</select></div>
-  <div class="pvlist">${r.rivals.length?r.rivals.map(x=>`<div class="pvi" data-nick="${esc(x.nick.toLowerCase())}"><div><b>${esc(x.nick)}</b><div class="gsub" style="margin:0">${esc(x.title)}・積分 ${x.rating}</div></div>${x.busy?`<span class="gsub" style="margin:0">等待應戰</span>`:`<button class="gbtn" data-ch="${x.k}" data-n="${esc(x.nick)}"${left?"":" disabled"}>下戰帖</button>`}</div>`).join(""):`<p class="gsub">還沒有其他同學。</p>`}</div>
-  ${r.outgoing.length?`<h4>⌛ 等待對方應戰</h4>${r.outgoing.map(p=>`<div class="pvi"><div>${esc(p.nick)}<div class="gsub" style="margin:0">${ago(p.at)}</div></div></div>`).join("")}`:""}
-  ${r.results.length?`<h4>📜 最近戰績</h4><table class="gtb"><tbody>${r.results.map(x=>`<tr><td>${x.exp?"⌛":x.win>0?"🏆":x.win<0?"💀":"🤝"}</td><td>${x.role==="from"?"挑戰":"應戰"}「${esc(x.nick)}」</td><td>${x.exp?"對方未應戰":`${x.my} : ${x.op}`}</td><td class="gsub">${ago(x.at)}</td></tr>`).join("")}</tbody></table>`:""}`}
+  <div class="pvlist">${r.rivals.length?r.rivals.map(x=>`<div class="pvi" data-nick="${esc(x.nick.toLowerCase())}"><div><b>${esc(x.nick)}</b><div class="gsub" style="margin:0">${esc(x.title)}・積分 ${x.rating}</div></div>${x.busy?`<span class="gsub" style="margin:0">等待應戰</span>`:x.full?`<span class="gsub" style="margin:0">戰帖已滿</span>`:`<button class="gbtn" data-ch="${x.k}" data-n="${esc(x.nick)}"${left?"":" disabled"}>下戰帖</button>`}</div>`).join(""):`<p class="gsub">還沒有其他同學。</p>`}</div>
+  ${r.outgoing.length?`<h4>⌛ 等待對方應戰</h4>${r.outgoing.map(p=>`<div class="pvi"><div>${esc(p.nick)}<div class="gsub" style="margin:0">${ago(p.at)}送出・對方 ${remain(p.at+3*864e5)}內不應戰就判你勝</div></div></div>`).join("")}`:""}
+  ${r.results.length?`<h4>📜 最近戰績</h4><table class="gtb"><tbody>${r.results.map(x=>`<tr><td>${x.exp?(x.role==="from"?"🏆":"⌛"):x.win>0?"🏆":x.win<0?"💀":"🤝"}</td><td>${x.role==="from"?"挑戰":"應戰"}「${esc(x.nick)}」</td><td>${x.exp?(x.role==="from"?"對方避戰，判勝":"避戰，判負"):`${x.my} : ${x.op}`}</td><td class="gsub">${ago(x.at)}</td></tr>`).join("")}</tbody></table>`:""}`}
 function bindDuel(body,r){const f=body.querySelector("#pvq");f&&(f.oninput=()=>{const v=f.value.trim().toLowerCase();body.querySelectorAll(".pvlist .pvi").forEach(d=>d.style.display=!v||d.dataset.nick.includes(v)?"":"none")});
   body.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{const ch=body.querySelector("#pvch").value;const qs=pickQs(PV.duelQ,ch);if(qs.length<PV.duelQ){toast("這個章節的選擇題不夠","info");return}const k=b.dataset.ch,nick=b.dataset.n;openOv&&openOv.remove();
     runQuiz({title:"⚔️ 向「"+nick+"」下戰帖",qs,mode:"duel",onQuit:()=>toast("已取消，戰帖沒有送出","info"),onDone:res=>{toast("送出戰帖中…","info");pvCall({op:"new",to:k,qs:qs.map(q=>q.id).join(","),sc:res.ok,tm:res.sec},x=>{if(x.err){celebrate("⚠️ 戰帖沒有送出",x.err,"n");return}celebrate("✉️ 戰帖已送出","你答對 "+res.ok+" / "+qs.length+" 題，用時 "+res.sec+" 秒。等「"+nick+"」應戰後，結果和修為會在你下次打開論道堂時結算。","n")})}})});
   body.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>{const p=r.pending.find(x=>x.id===b.dataset.acc);const map=new Map(bank().map(q=>[q.id,q]));const qs=p.qs.split(",").map(id=>map.get(id)).filter(Boolean);if(!qs.length){toast("找不到題目，請重新整理","info");return}openOv&&openOv.remove();
-    const send=res=>pvCall({op:"ans",id:p.id,sc:res.ok,tm:res.sec},x=>{if(x.err){celebrate("⚠️ 成績沒有送出",x.err,"n");return}pvClaim([{id:p.id,nick:p.nick,win:x.win}]);
+    const send=res=>pvCall({op:"ans",id:p.id,sc:res.ok,tm:res.sec},x=>{if(x.err){celebrate("⚠️ 成績沒有送出",x.err,"n");return}gain(PV.rAccept,"勇於應戰");pvClaim([{id:p.id,nick:p.nick,win:x.win}]);
       celebrate((x.win>0?"🏆 論道勝利！":x.win<0?"💀 惜敗":"🤝 平分秋色"),"你 "+x.my+" 題（"+x.myT+" 秒） vs 「"+p.nick+"」 "+x.op+" 題（"+x.opT+" 秒）。"+(x.win>0?"論道積分 +20，修為 +"+PV.rWin+"。":x.win<0?"論道積分 −20，修為仍有 +"+PV.rLose+"。":"積分不變，修為 +"+PV.rTie+"。"),x.win>0?"e":"n");PD=null});
     runQuiz({title:"⚔️ 應戰「"+p.nick+"」",qs,mode:"duel",answering:true,onDone:send})})}
 function absHTML(r){const me=r.me,left=Math.max(0,2-me.abs),tries=Math.max(0,PV.absTry-(pv().absTry[today()]||0));
