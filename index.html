@@ -66,7 +66,7 @@ main h2{font-family:var(--f-display);font-weight:900;font-size:clamp(1.5rem,3.4v
 .lead{max-width:65ch;margin:14px 0 8px}
 .guide{font-size:.9rem;color:var(--muted);max-width:68ch;margin:0 0 10px}
 
-.route{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:20px 0 4px;border:1.5px solid var(--ink)}
+.route{display:grid;grid-template-columns:repeat(var(--nsteps,5),minmax(0,1fr));gap:0;margin:20px 0 4px;border:1.5px solid var(--ink)}
 .route button{all:unset;cursor:pointer;padding:10px 12px;border-right:1px solid var(--line);min-width:0}
 .route button:last-child{border-right:0}
 .route button:hover{background:var(--steel-soft)}
@@ -137,6 +137,11 @@ svg .st{stroke:currentColor;stroke-width:1.2} svg .sts{stroke:var(--steel);strok
 .tags{display:flex;gap:4px;flex:none}
 .tag{font-family:var(--f-mono);font-size:.68rem;border:1px solid var(--line);padding:0 6px;color:var(--muted);white-space:nowrap}
 .tag.book{border-color:var(--accent);color:var(--accent)}
+.tag.lv1{border-color:#2f7a4f;color:#2f7a4f}.tag.lv2{border-color:#9a5b00;color:#9a5b00}
+.tier{margin-top:18px}.tierh{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:6px 0 4px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.tier-badge{font-weight:700;font-size:.95rem}.tier-badge.lv1{color:#2f7a4f}.tier-badge.lv2{color:#9a5b00}
+.tierh .zsc{margin-left:auto}
+#sec-bank [hidden]{display:none!important}
 .opts{display:grid;gap:6px;margin:10px 0 0}
 .opt{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border:1px solid var(--line);cursor:pointer;line-height:1.55}
 .opt:hover{border-color:var(--steel)}
@@ -2011,7 +2016,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
 const smooth=()=>matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
-function allQs(ch){const out=[];ch.zones.forEach((z,zi)=>z.qs.forEach((q,qi)=>out.push(["z"+zi+"-"+qi,q])));ch.practice.forEach(q=>out.push([q.pk,q]));return out}
+function allQs(ch){const out=[];ch.zones.forEach((z,zi)=>z.qs.forEach((q,qi)=>out.push(["z"+zi+"-"+qi,q])));ch.practice.forEach(q=>out.push([q.pk,q]));(ch.bank||[]).forEach(q=>out.push([q.pk,q]));return out}
 const K=(ch,k)=>"c"+ch.num+"-"+k;
 
 function parseNum(raw){
@@ -2033,7 +2038,7 @@ function qHTML(ch,key,no,q){
   else if(q.t==="match")body=`<div class="rows">${q.items.map((it,ii)=>`<div class="row" id="w-${id}-${ii}"><span class="lab">${it[0]}</span><select id="i-${id}-${ii}" aria-label="${esc(it[0])}"><option value="">選擇…</option>${q.opts.map((o,oi)=>`<option value="${oi}">${o}</option>`).join("")}</select><span class="mk"></span></div>`).join("")}</div>`;
   else body=`<textarea id="i-${id}-0" placeholder="先寫下你的答案，再按「看參考答案」對照。" aria-label="你的答案"></textarea>`;
   const btns=q.t==="open"?`<button class="b" data-act="reveal">看參考答案</button>${q.h?'<button class="b ghost" data-act="hint">提示</button>':""}`:`<button class="b" data-act="check">檢查答案</button>${q.h?'<button class="b ghost" data-act="hint">提示</button>':""}<button class="b ghost" data-act="show">看詳解</button>`;
-  return `<div class="q" id="q-${id}"><div class="qh"><span class="no">${no}</span><p class="stem">${q.s.replace(/\n/g,"<br>")}</p><span class="tags">${q.ref?`<span class="tag book">課本 ${q.ref}</span>`:""}<span class="tag">${map[q.t]}</span></span></div>${q.sfig?`<figure class="fig qfig"><div class="figbox">${FIG[q.sfig]()}</div></figure>`:""}${body}<div class="acts">${btns}</div><div class="fbz" aria-live="polite"></div></div>`;
+  return `<div class="q" id="q-${id}"><div class="qh"><span class="no">${no}</span><p class="stem">${q.s.replace(/\n/g,"<br>")}</p><span class="tags">${q.lv?`<span class="tag lv${q.lv}">${q.lv===1?"基礎":"活用"}</span>${q.z?`<span class="tag">${q.z}</span>`:""}`:""}${q.ref?`<span class="tag book">課本 ${q.ref}</span>`:""}<span class="tag">${map[q.t]}</span></span></div>${q.sfig?`<figure class="fig qfig"><div class="figbox">${FIG[q.sfig]()}</div></figure>`:""}${body}<div class="acts">${btns}</div><div class="fbz" aria-live="polite"></div></div>`;
 }
 function solText(q){
   if(q.t==="mc")return `正確答案：(${"ABCD"[q.a]}) ${q.o[q.a]}<br>${q.e}`;
@@ -2097,11 +2102,11 @@ function render(ci){
   const vTotal=ch.vocab.reduce((s,g)=>s+g[1].length,0);
   const termList=Object.keys(ch.termsMap);
   const zoneOf={};ch.zones.forEach(z=>z.terms.forEach(t=>zoneOf[t]=z.code));
-  const steps=[["goals","學習目標","先知道要學會什麼"],["vocab","單字預習",`${vTotal} 個原文用字`],["concepts","觀念講解",`${ch.zones.length} 個觀念區＋觀念驗證`],["practice","實力加強",`${ch.practice.length} 題課本習題`],["review","名詞總複習",`${termList.length} 個名詞自我測驗`]];
+  const steps=[["goals","學習目標","先知道要學會什麼"],["vocab","單字預習",`${vTotal} 個原文用字`],["concepts","觀念講解",`${ch.zones.length} 個觀念區＋觀念驗證`],["practice","實力加強",`${ch.practice.length} 題課本習題`],...(ch.bank&&ch.bank.length?[["bank","題庫練功",`${ch.bank.filter(q=>q.lv===1).length} 基礎＋${ch.bank.filter(q=>q.lv===2).length} 活用`]]:[]),["review","名詞總複習",`${termList.length} 個名詞自我測驗`]];
   let h=`<div class="strip" role="navigation" aria-label="本章段落">${steps.map((s,i)=>i===2?`<button class="chip" data-go="${s[0]}"><b>${i+1}</b>${s[1]}</button>`+ch.zones.map((z,zi)=>`<button class="chip mini" data-go="z${zi}" title="${z.title}">${z.code.slice(2)}</button>`).join(""):`<button class="chip" data-go="${s[0]}"><b>${i+1}</b>${s[1]}</button>`).join("")}</div>
    <div class="eyebrow">Chapter ${ch.num}</div><h2>第 ${ch.num} 章　${ch.name}</h2><p class="en">${ch.en}</p>
    <p class="lead">${ch.lead}</p>
-   <div class="route" aria-label="建議學習順序">${steps.map((s,i)=>`<button data-go="${s[0]}"><span class="n">STEP ${i+1}</span><span class="t">${s[1]}</span><span class="d">${s[2]}</span></button>`).join("")}</div><div class="syncbox" id="syncbox"></div>`;
+   <div class="route" style="--nsteps:${steps.length}" aria-label="建議學習順序">${steps.map((s,i)=>`<button data-go="${s[0]}"><span class="n">STEP ${i+1}</span><span class="t">${s[1]}</span><span class="d">${s[2]}</span></button>`).join("")}</div><div class="syncbox" id="syncbox"></div>`;
 
   h+=`<section class="step" id="sec-goals"><div class="stephead"><span class="sn">STEP 1</span><h3>學習目標</h3><span class="ref">Learning Objectives</span></div>
     <p class="guide" style="margin-top:12px">讀完本章後，你應該能夠：</p><ol class="goals">${ch.goals.map(g=>`<li>${g}</li>`).join("")}</ol></section>`;
@@ -2128,15 +2133,16 @@ function render(ci){
 
   h+=`<section class="step" id="sec-practice"><div class="stephead"><span class="sn">STEP 4</span><h3>實力加強</h3><span class="ref">課本章末習題（第十版題號）</span><span class="zsc" id="zs-p"></span></div>
     <p class="guide" style="margin-top:12px">精選本章最重要的課本習題（第十版題號），完成所有觀念驗證後再做。計算、選擇與配對題會自動批改；問答與作圖題請先自己寫或畫，再對照參考答案自行評分。想多練習的同學，可以做課本 ${ch.moreRange} 的其他習題。</p>
-    ${ch.practice.map((q,pi)=>(q.grp?`<div class="lab-h">${q.grp}</div>`:"")+qHTML(ch,q.pk,"P"+(pi+1),q)).join("")}</section>`+feedbackHTML(ch);
+    ${ch.practice.map((q,pi)=>(q.grp?`<div class="lab-h">${q.grp}</div>`:"")+qHTML(ch,q.pk,"P"+(pi+1),q)).join("")}</section>`+bankHTML(ch)+feedbackHTML(ch);
 
-  h+=`<section class="step" id="sec-review"><div class="stephead"><span class="sn">STEP 5</span><h3>名詞總複習</h3><span class="ref">標「課本」者為課本 Important Terms and Concepts</span></div>
+  h+=`<section class="step" id="sec-review"><div class="stephead"><span class="sn">STEP ${steps.length}</span><h3>名詞總複習</h3><span class="ref">標「課本」者為課本 Important Terms and Concepts</span></div>
     <p class="guide" style="margin-top:12px">考前把本章名詞集中複習一次。選「遮定義」後先說出每個名詞的意思，再點灰色格子對照；標籤顯示這個名詞出自哪個觀念區。</p>
     <div class="tools"><div class="seg" role="group" aria-label="名詞遮蓋模式"><button data-tmask="none" aria-pressed="true">全部顯示</button><button data-tmask="def" aria-pressed="false">遮定義</button><button data-tmask="zh" aria-pressed="false">遮中文與定義</button></div></div>
     <div class="terms">${termList.map(e=>{const [z,d,b]=ch.termsMap[e];return `<div class="term"><div class="t"><span class="te">${e}</span><span class="tz" data-tcol="zh">${z}</span>${zoneOf[e]?`<span class="zone-tag">${zoneOf[e]}</span>`:""}${b?'<span class="badge">課本</span>':""}</div><p data-tcol="def">${d}</p></div>`}).join("")}</div></section>
     <div class="foot"><span class="guide" style="margin:0">作答紀錄只存在這台裝置的瀏覽器中。</span><span id="resetZone"><button class="reset" id="resetBtn">清除本章作答紀錄</button></span></div>`;
   $("main").innerHTML=h;
 
+  document.querySelectorAll("[data-bt],[data-bu]").forEach(b=>b.onclick=()=>{const k=b.dataset.bt!=null?"bt":"bu";document.querySelectorAll("[data-"+k+"]").forEach(x=>x.setAttribute("aria-pressed",x===b));bankFilter()});
   document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const el=$("sec-"+b.dataset.go);if(el)el.scrollIntoView({behavior:smooth()})});
   allQs(ch).forEach(([k,q])=>{
     const el=$("q-"+K(ch,k));
@@ -2168,12 +2174,24 @@ function setupMasks(){
   cnt();
 }
 
+function bankHTML(ch){
+  const B=ch.bank||[];if(!B.length)return "";
+  const tier=(lv,name,desc)=>{const L=B.filter(q=>q.lv===lv);return `<div class="tier" data-tier="${lv}"><div class="tierh"><span class="tier-badge lv${lv}">${lv===1?"◆":"◆◆"} ${name}</span><span class="guide" style="margin:0">${desc}</span><span class="zsc" id="zs-b${lv}"></span></div>${L.map((q,i)=>qHTML(ch,q.pk,(lv===1?"基":"活")+(i+1),q)).join("")}</div>`};
+  return `<section class="step" id="sec-bank"><div class="stephead"><span class="sn">STEP 5</span><h3>題庫練功</h3><span class="ref">分級練習：基礎題 → 活用題</span><span class="zsc" id="zs-b"></span></div>
+    <p class="guide" style="margin-top:12px">和前面的觀念驗證、課本習題不重複的新題目。<b>基礎題</b>確認觀念與公式會用；<b>活用題</b>要把兩三個觀念串起來，或把公式反過來用。每題都標了對應的觀念區，卡住時可以回去複習。</p>
+    <div class="tools"><div class="seg" role="group" aria-label="題目等級"><button data-bt="0" aria-pressed="true">全部</button><button data-bt="1" aria-pressed="false">只看基礎題</button><button data-bt="2" aria-pressed="false">只看活用題</button></div><div class="seg" role="group" aria-label="顯示範圍"><button data-bu="0" aria-pressed="true">全部題目</button><button data-bu="1" aria-pressed="false">只看還沒答對的</button></div></div>
+    ${tier(1,"基礎題","一個觀念、一個公式就能解")}${tier(2,"活用題","需要串連觀念或反推")}</section>`;
+}
+function bankFilter(){const t=document.querySelector("[data-bt][aria-pressed=true]"),u=document.querySelector("[data-bu][aria-pressed=true]");if(!t)return;
+  document.querySelectorAll("#sec-bank .tier").forEach(d=>d.hidden=t.dataset.bt!=="0"&&d.dataset.tier!==t.dataset.bt);
+  document.querySelectorAll("#sec-bank .q").forEach(q=>{const r=state.q[q.id.slice(2)];q.hidden=u.dataset.bu==="1"&&!!(r&&r.ok)})}
 function updScores(ch){
   const qs=allQs(ch),isOk=k=>state.q[K(ch,k)]&&state.q[K(ch,k)].ok;
   const ok=qs.filter(([k])=>isOk(k)).length;
   $("ovNum").textContent=ok;$("ovTot").textContent=qs.length;$("ovBar").style.width=(ok/qs.length*100)+"%";
   const cq=chp(ch.num).qs||{};ch.zones.forEach((z,zi)=>{const n=z.qs.filter((_,qi)=>isOk("z"+zi+"-"+qi)).length;const f=z.qs.filter((_,qi)=>{const r=cq["z"+zi+"-"+qi];return r&&r.ok&&r.tries===1}).length;const el=$("zs-"+zi);if(el){el.innerHTML=`${n} / ${z.qs.length}`+(window.GAME?`<span class="gstars" title="熟練度：全部答對且三分之二以上第一次就答對可得三顆星">${GAME.stars(n,f,z.qs.length)}</span>`:"");el.classList.toggle("full",n===z.qs.length)}});
   const pn=ch.practice.filter(q=>isOk(q.pk)).length;const pe=$("zs-p");if(pe){pe.textContent=`${pn} / ${ch.practice.length}`;pe.classList.toggle("full",pn===ch.practice.length)}
+  [[0,"zs-b"],[1,"zs-b1"],[2,"zs-b2"]].forEach(([lv,id])=>{const L=(ch.bank||[]).filter(q=>!lv||q.lv===lv),n=L.filter(q=>isOk(q.pk)).length,el=$(id);if(el){el.textContent=`${n} / ${L.length}`;el.classList.toggle("full",n===L.length)}});
   renderRail();
 }
 let cur=0;
@@ -2198,6 +2216,76 @@ function pickPractice(all,plan){
 }
 CH2.practice=pickPractice(PR2,[["2.2","原子與電子組態"],["2.5"],["2.7"],["2.8","鍵結力與鍵結能"],["2.11"],["2.13","鍵結種類與材料"],["2.14"],["2.15"]]);
 CH3.practice=pickPractice(PR3,[["3.3","晶體結構與密度"],["3.5"],["3.9"],["3.12","晶系",0],["3.12","",1],["3.18","晶向與晶面"],["3.25"],["3.26"],["3.35","面密度"],["3.38","X 光繞射"],["3.41"]]);
+/* ================= 題庫練功（分級題庫：基礎題 lv1／活用題 lv2） ================= */
+CH2.bank=[
+ /* ---- 基礎題 ---- */
+ {lv:1,z:"2-A",t:"num",s:"一個鋁原子（A = 26.98 g/mol）的質量是多少公克？",u:"g",a:4.48e-23,tol:1.5,sci:true,h:"一莫耳有 N_A 個原子，所以單一原子的質量 = A / N_A。",sol:"m = 26.98 g/mol ÷ 6.022×10²³ atoms/mol\n  = 4.48×10⁻²³ g"},
+ {lv:1,z:"2-A",t:"num",s:"5.00 g 的鐵（A = 55.85 g/mol）是多少莫耳？",u:"mol",a:0.0895,tol:1.5,h:"莫耳數 = 質量 ÷ 原子量。",sol:"n = 5.00 g ÷ 55.85 g/mol = 0.0895 mol"},
+ {lv:1,z:"2-B",t:"num",s:"N 殼層（n = 4）最多可容納多少個電子？",u:"個",a:32,tol:0,h:"每個殼層最多容納 2n² 個電子。",sol:"2n² = 2 × 4² = 32 個\n（4s 2 + 4p 6 + 4d 10 + 4f 14 = 32）"},
+ {lv:1,z:"2-B",t:"mc",s:"f 副殼層（l = 3）最多可容納幾個電子？",o:["6","10","14","18"],a:2,e:"l = 3 時 mₗ = −3…+3 共 7 個軌域，每個軌域可放自旋相反的 2 個電子，所以 7 × 2 = 14。"},
+ {lv:1,z:"2-B",t:"mc",s:"波動力學模型與波耳模型最主要的差別是：",o:["波動力學模型認為電子沒有質量","波動力學模型以機率分布描述電子的位置，而不是固定的圓形軌道","波耳模型的電子能量是連續的","波耳模型沒有原子核"],a:1,e:"波耳模型把電子想成在固定軌道上繞核運動；波動力學模型把電子看成波，只能說出它出現在某處的機率（電子雲）。兩者都認為能量是量子化的。"},
+ {lv:1,z:"2-C",t:"mc",s:"鐵（Z = 26）的基態電子組態為：",o:["1s²2s²2p⁶3s²3p⁶3d⁸","1s²2s²2p⁶3s²3p⁶3d⁶4s²","1s²2s²2p⁶3s²3p⁶4s²4p⁶","1s²2s²2p⁶3s²3p⁶3d⁴4s²4p²"],a:1,e:"填完 3p⁶（18 個）後先填能量較低的 4s²，再填 3d：26 − 20 = 6，所以是 3d⁶4s²。"},
+ {lv:1,z:"2-C",t:"mc",s:"下列哪一個離子的電子組態「不」與氬（Ar）相同？",o:["K⁺","Ca²⁺","S²⁻","Na⁺"],a:3,e:"K⁺、Ca²⁺、S²⁻ 都有 18 個電子，組態與 Ar 相同。Na⁺ 只有 10 個電子，組態與 Ne 相同。"},
+ {lv:1,z:"2-D",t:"mc",s:"在週期表上，電負度的一般趨勢是：",o:["由左往右減少、由上往下增加","由左往右增加、由上往下減少","與位置無關","只有過渡金屬有電負度"],a:1,e:"越靠右上角（F 最大）的元素越想得到電子，電負度越大；越靠左下角（Cs、Fr）越小。"},
+ {lv:1,z:"2-D",t:"mc",s:"下列元素中，最容易失去一個電子形成 +1 價陽離子的是：",o:["K","Cl","Ne","O"],a:0,e:"K 是鹼金屬，最外層只有一個 4s 電子，失去後就達到 Ar 的穩定組態，電負度也很小。"},
+ {lv:1,z:"2-E",t:"mc",s:"兩離子的中心距離變為原來的兩倍，兩者之間的庫侖吸引力變為原來的：",o:["2 倍","1/2","1/4","不變"],a:2,e:"庫侖力 F ∝ 1/r²，r 變成 2 倍時，F 變成 1/2² = 1/4。"},
+ {lv:1,z:"2-E",t:"mc",s:"在淨位能 E_N 對原子間距 r 的曲線上，鍵結能 E₀ 對應的是：",o:["曲線與 r 軸的交點","曲線最低點的位能（位能井的深度）","r 趨近於 0 時的位能","曲線斜率最大的地方"],a:1,e:"平衡間距 r₀ 在位能最低點，該處位能 E₀ 就是把兩原子拆開到無限遠所需的能量，也就是鍵結能。"},
+ {lv:1,z:"2-F",t:"mc",s:"金屬通常是電與熱的良導體，主要原因是：",o:["金屬原子之間共用固定的電子對","價電子形成可以自由移動的電子海","金屬中有大量離子可以移動","金屬原子之間沒有鍵結"],a:1,e:"金屬鍵中的價電子不屬於特定原子，在整塊金屬中自由移動（電子海），所以容易傳遞電荷與熱。"},
+ {lv:1,z:"2-G",t:"mc",s:"下列哪一種屬於「次級鍵」？",o:["離子鍵","共價鍵","金屬鍵","氫鍵"],a:3,e:"離子鍵、共價鍵、金屬鍵是主鍵；氫鍵與凡得瓦鍵屬於次級鍵，鍵結能小得多。"},
+ {lv:1,z:"2-H",t:"num",s:"Na 的電負度 0.9、Cl 為 3.0。計算 NaCl 鍵的離子性百分比。",u:"%",a:66.8,tol:1.5,h:"%IC = {1 − exp[−0.25 (X_A − X_B)²]} × 100。",sol:"ΔX = 3.0 − 0.9 = 2.1\n%IC = [1 − exp(−0.25 × 2.1²)] × 100\n    = [1 − exp(−1.1025)] × 100\n    = 66.8 %"},
+ {lv:1,z:"2-H",t:"mc",s:"高分子（例如聚乙烯）主鏈上原子之間的鍵結主要是：",o:["離子鍵","共價鍵","金屬鍵","氫鍵"],a:1,e:"高分子主鏈的 C–C、C–H 都是共價鍵；分子鏈與分子鏈之間才是較弱的凡得瓦力或氫鍵。"},
+ /* ---- 活用題 ---- */
+ {lv:2,z:"2-A",t:"num",s:"鎵（Ga）只有兩種天然同位素：⁶⁹Ga（68.926 amu）與 ⁷¹Ga（70.925 amu），Ga 的平均原子量為 69.72 amu。求 ⁶⁹Ga 的天然豐度。",u:"%",a:60.3,tol:1.5,h:"設 ⁶⁹Ga 的豐度為 f，則 ⁷¹Ga 為 1 − f；f·A₁ + (1 − f)·A₂ = 平均原子量。",sol:"68.926 f + 70.925 (1 − f) = 69.72\n70.925 − 1.999 f = 69.72\nf = 1.205 / 1.999 = 0.603\n⁶⁹Ga 約 60.3 %，⁷¹Ga 約 39.7 %"},
+ {lv:2,z:"2-A",t:"num",s:"鋁的密度 2.70 g/cm³、原子量 26.98 g/mol。1.00 cm³ 的鋁含有多少個原子？",u:"個",a:6.03e22,tol:1.5,sci:true,h:"先由密度求質量，再換成莫耳數，最後乘上 N_A。",sol:"m = 2.70 g\nn = 2.70 / 26.98 = 0.1001 mol\n原子數 = 0.1001 × 6.022×10²³ = 6.03×10²² 個"},
+ {lv:2,z:"2-B",t:"num",s:"量子數 n = 4、l = 2 的副殼層（4d）最多可容納幾個電子？",u:"個",a:10,tol:0,h:"l = 2 時 mₗ 有幾種值？每種再乘上兩個自旋方向。",sol:"l = 2 → mₗ = −2, −1, 0, +1, +2，共 5 個軌域\n每個軌域 2 個電子 → 5 × 2 = 10 個"},
+ {lv:2,z:"2-C",t:"mc",s:"鉻（Z = 24）的實際基態電子組態為 1s²2s²2p⁶3s²3p⁶3d⁵4s¹，而不是依序填入的 3d⁴4s²。最常見的解釋是：",o:["4s 軌域無法容納兩個電子","半滿的 3d⁵ 副殼層特別穩定","Cr 是惰性氣體","3d 的能量一定比 4s 高很多"],a:1,e:"3d 與 4s 能量非常接近；把一個 4s 電子移到 3d 形成半滿的 3d⁵，整體能量反而較低（Cu 的 3d¹⁰4s¹ 也是類似情形）。"},
+ {lv:2,z:"2-E",t:"multi",s:"K⁺Cl⁻ 離子對的平衡間距 r₀ = 0.279 nm，吸引能 E_A = −1.436/r、排斥能 E_R = B/r⁹（能量 eV、r 單位 nm）。利用平衡條件 dE_N/dr = 0，求 r₀ 處的 E_A、E_R 與鍵結能 E₀。",parts:[["E_A","eV",-5.15,1.5],["E_R","eV",0.572,2],["E₀","eV",-4.58,1.5]],h:"在 r₀ 處 A/r₀² = nB/r₀ⁿ⁺¹，所以 E_R = B/r₀ⁿ = (A/r₀)/n = −E_A / n。",sol:"E_A = −1.436 / 0.279 = −5.15 eV\n平衡時 E_R = −E_A / n = 5.15 / 9 = 0.572 eV\nE₀ = E_A + E_R = −5.15 + 0.57 = −4.58 eV"},
+ {lv:2,z:"2-E",t:"num",s:"K⁺ 與 Br⁻ 的離子半徑分別為 0.138 nm 與 0.196 nm。兩離子剛好接觸時，吸引力是多少？",u:"N",a:2.07e-9,tol:2,sci:true,h:"剛好接觸時 r = r(K⁺) + r(Br⁻)。F_A = (|Z₁|e)(|Z₂|e) / (4πε₀r²)，Z₁ = Z₂ = 1。",sol:"r = 0.138 + 0.196 = 0.334 nm = 3.34×10⁻¹⁰ m\nF_A = (1.602×10⁻¹⁹)² / [4π(8.85×10⁻¹²)(3.34×10⁻¹⁰)²]\n    = 2.07×10⁻⁹ N"},
+ {lv:2,z:"2-E",t:"mc",s:"甲、乙兩種材料的 E–r 曲線中，甲的位能井「又深又窄」，乙的位能井「又淺又寬」。下列推論何者最合理？",o:["甲的熔點較低","甲的熱膨脹係數較小、彈性模數較大","乙的鍵結能較大","兩者性質相同"],a:1,e:"井深代表鍵結能大（熔點高）；井窄代表原子偏離 r₀ 時位能上升得快，所以受熱時間距不易變大（熱膨脹係數小），受力時也不易被拉開（彈性模數大）。"},
+ {lv:2,z:"2-F",t:"mc",s:"NaCl 與 MgO 都是岩鹽結構的離子固體，但 MgO 的熔點（約 2850 °C）遠高於 NaCl（801 °C）。主要原因是：",o:["MgO 是共價固體","Mg²⁺、O²⁻ 帶兩倍電荷且離子間距較小，庫侖吸引力大很多","NaCl 中有氫鍵","MgO 的原子量比較大"],a:1,e:"F ∝ Z₁Z₂ / r²。MgO 的 Z₁Z₂ = 4（NaCl 只有 1），離子間距也比較小，所以鍵結強得多，熔點高得多。"},
+ {lv:2,z:"2-G",t:"mc",s:"鹵素分子 F₂、Cl₂、Br₂、I₂ 的沸點依序升高。最好的解釋是：",o:["分子內的共價鍵越來越強","分子越大、電子越多，電子雲越容易被極化，分子間的凡得瓦力越強","分子之間形成越來越多氫鍵","分子越來越極性"],a:1,e:"這些都是非極性分子，分子間只有誘導偶極（散射力）。電子越多、電子雲越大越容易變形，誘導偶極越強，所以沸點升高。沸騰時並不會打斷分子內的共價鍵。"},
+ {lv:2,z:"2-H",t:"num",s:"Si 的電負度 1.8、C 為 2.5。計算 SiC 鍵的離子性百分比。",u:"%",a:11.5,tol:2,h:"%IC = {1 − exp[−0.25 (ΔX)²]} × 100。",sol:"ΔX = 2.5 − 1.8 = 0.7\n%IC = [1 − exp(−0.25 × 0.49)] × 100 = 11.5 %\n離子性很低，SiC 以共價鍵為主，所以非常硬、熔點極高。"},
+ {lv:2,z:"2-H",t:"match",s:"依材料表現出的性質，推測其主要鍵結類型。",opts:["金屬鍵","離子鍵","共價鍵（網狀）","凡得瓦力（分子固體）"],items:[["(a) 導電、導熱好，可以彎曲、拉長",0],["(b) 硬而脆、熔點高，固態不導電但熔融後可導電",1],["(c) 極硬、熔點極高，鍵有方向性，固態與熔融都不導電",2],["(d) 很軟、熔點很低，常溫下多為氣體或液體",3]],h:"想想每種鍵結中電子在做什麼：自由移動？轉移形成離子？固定共用？還是只有微弱的偶極吸引？",sol:"(a) 金屬鍵：電子海可移動 → 導電；鍵無方向性 → 原子可滑移，延展性好。\n(b) 離子鍵：離子固定在晶格中不能移動 → 固態不導電；熔融後離子可移動 → 導電。\n(c) 共價網狀固體（如鑽石、SiC）：鍵強且有方向性。\n(d) 分子固體：分子間只有凡得瓦力，很容易分開。"},
+ {lv:2,z:"2-H",t:"mc",s:"依熔點由高到低排列：鎢（W）、鋁（Al）、冰（H₂O）、氬（Ar）。",o:["W > Al > H₂O > Ar","Al > W > Ar > H₂O","W > H₂O > Al > Ar","Ar > H₂O > Al > W"],a:0,e:"W 金屬鍵很強（約 3410 °C）> Al 金屬鍵較弱（660 °C）> 冰靠氫鍵（0 °C）> Ar 只有凡得瓦力（−189 °C）。"},
+ {lv:2,z:"2-F",t:"mc",s:"下列敘述何者正確？",o:["離子鍵具有方向性","共價鍵的鍵結能一定比金屬鍵小","金屬鍵與離子鍵都沒有方向性，共價鍵有方向性","次級鍵的鍵結能通常比主鍵大"],a:2,e:"離子鍵的庫侖力向各方向都一樣，金屬鍵的電子海也無方向性；共價鍵是特定原子之間共用電子，有固定的鍵角。共價鍵的強度範圍很大，不能一概說比金屬鍵小。"}
+];
+CH3.bank=[
+ /* ---- 基礎題 ---- */
+ {lv:1,z:"3-A",t:"mc",s:"下列哪一種材料通常是非晶質（amorphous）？",o:["室溫的銅","食鹽","窗戶玻璃（矽酸鹽玻璃）","鑽石"],a:2,e:"矽酸鹽玻璃由熔融狀態快速冷卻，原子沒有長程規則排列，是典型的非晶質固體；其餘三者都是結晶。"},
+ {lv:1,z:"3-B",t:"mc",s:"BCC 單位晶胞中，淨含有幾個原子？",o:["1","2","4","6"],a:1,e:"8 個角落原子各算 1/8，共 1 個；再加上體心的 1 個，合計 2 個。"},
+ {lv:1,z:"3-B",t:"mc",s:"HCP 單位晶胞（六角柱）中，淨含有幾個原子？",o:["2","4","6","12"],a:2,e:"上下底面 12 個角落原子各算 1/6，共 2 個；上下面心各 1/2，共 1 個；中間層 3 個完整原子。2 + 1 + 3 = 6。"},
+ {lv:1,z:"3-B",t:"num",s:"鋁為 FCC 結構，原子半徑 R = 0.143 nm。計算其晶格常數 a。",u:"nm",a:0.4045,tol:1,h:"FCC 原子沿面對角線接觸：面對角線 = 4R = √2 a。",sol:"a = 2√2 R = 2√2 × 0.143 = 0.4045 nm"},
+ {lv:1,z:"3-B",t:"num",s:"計算 FCC 結構的原子堆積因子 APF（取到小數第二位）。",u:"",a:0.74,tol:1.5,h:"APF = (晶胞內原子數 × 一個原子體積) / 晶胞體積，a = 2√2 R。",sol:"APF = 4 × (4/3)πR³ / (2√2 R)³\n    = (16π/3) R³ / (16√2 R³)\n    = π / (3√2) = 0.74"},
+ {lv:1,z:"3-C",t:"num",s:"鉻（Cr）為 BCC 結構，原子半徑 0.125 nm，原子量 52.00 g/mol。計算其理論密度。",u:"g/cm³",a:7.18,tol:1.5,h:"ρ = nA / (V_C N_A)。BCC：n = 2，a = 4R/√3。注意把 nm 換成 cm。",sol:"a = 4(0.125)/√3 = 0.2887 nm = 2.887×10⁻⁸ cm\nV_C = a³ = 2.406×10⁻²³ cm³\nρ = (2)(52.00) / [(2.406×10⁻²³)(6.022×10²³)]\n  = 7.18 g/cm³"},
+ {lv:1,z:"3-D",t:"mc",s:"某晶胞 a ≠ b ≠ c、α = β = γ = 90°，屬於哪一個晶系？",o:["立方","正方（tetragonal）","斜方（orthorhombic）","單斜（monoclinic）"],a:2,e:"三軸互相垂直但長度都不同，是斜方晶系（orthorhombic）。若 a = b ≠ c 才是正方晶系。"},
+ {lv:1,z:"3-E",t:"mc",s:"FCC 晶胞中，位於 x = 1 那個面中心的原子，點座標為：",o:["½ ½ 0","1 ½ ½","½ 1 ½","1 1 ½"],a:1,e:"x = 1，另外兩個座標在面的中心，都是 ½，所以是 1 ½ ½。"},
+ {lv:1,z:"3-E",t:"mc",s:"某向量的尾端在點座標 1 0 0、頭端在 0 1 1（立方晶胞）。它的晶向指數為：",o:["[111]","[1̄11]","[11̄1̄]","[011]"],a:1,e:"頭減尾：(0 − 1, 1 − 0, 1 − 0) = (−1, 1, 1)，負號寫在數字上方：[1̄11]。"},
+ {lv:1,z:"3-F",t:"mc",s:"某晶面平行於 y 軸與 z 軸，在 x 軸的截距為 a。它的米勒指數為：",o:["(100)","(010)","(001)","(111)"],a:0,e:"截距為 1、∞、∞，取倒數得 1、0、0，所以是 (100)。"},
+ {lv:1,z:"3-H",t:"mc",s:"FCC 結構中，原子最密排列的晶向族是：",o:["⟨100⟩","⟨110⟩","⟨111⟩","⟨210⟩"],a:1,e:"FCC 原子沿面對角線互相接觸，所以 ⟨110⟩ 是最密晶向。BCC 則是沿體對角線 ⟨111⟩ 接觸。"},
+ {lv:1,z:"3-H",t:"mc",s:"BCC 結構中，原子最密排列的晶向族是：",o:["⟨100⟩","⟨110⟩","⟨111⟩","⟨112⟩"],a:2,e:"BCC 角落原子與體心原子沿體對角線接觸，所以 ⟨111⟩ 是最密晶向。"},
+ {lv:1,z:"3-I",t:"mc",s:"一塊材料由許多晶粒組成，各晶粒的晶體方位隨機分布。這塊材料稱為：",o:["單晶","多晶","非晶質","準晶"],a:1,e:"由許多方位不同的晶粒構成的是多晶材料；晶粒之間的交界就是晶界。"},
+ {lv:1,z:"3-J",t:"mc",s:"同一個晶體的 X 光繞射圖譜中，2θ 角越大的繞射峰，對應的晶面間距 d：",o:["越大","越小","都一樣","與 θ 無關"],a:1,e:"布拉格定律 nλ = 2d sinθ，λ 固定時 sinθ 越大，d 越小。"},
+ /* ---- 活用題 ---- */
+ {lv:2,z:"3-C",t:"num",s:"鉬（Mo）為 BCC 結構，密度 10.22 g/cm³，原子量 95.94 g/mol。由這些資料計算 Mo 的原子半徑。",u:"nm",a:0.1363,tol:1.5,h:"先由 ρ = nA / (a³N_A) 解出 a³，開立方得 a，再用 BCC 的 a = 4R/√3。",sol:"a³ = nA / (ρ N_A) = (2)(95.94) / [(10.22)(6.022×10²³)]\n   = 3.118×10⁻²³ cm³\na = 3.147×10⁻⁸ cm = 0.3147 nm\nR = √3 a / 4 = 0.1363 nm"},
+ {lv:2,z:"3-C",t:"num",s:"鐵在 912 °C 由 BCC（α-Fe）轉變為 FCC（γ-Fe）。假設原子半徑不變，計算轉變時的體積變化百分比（體積減少請填負值）。",u:"%",a:-8.1,tol:3,h:"比較「每個原子平均佔的體積」：BCC 為 a³/2（a = 4R/√3），FCC 為 a³/4（a = 2√2 R）。",sol:"BCC：V/atom = (4R/√3)³ / 2 = 6.158 R³\nFCC：V/atom = (2√2 R)³ / 4 = 5.657 R³\nΔV/V = (5.657 − 6.158) / 6.158 = −8.1 %\nFCC 堆積較密，所以體積變小。"},
+ {lv:2,z:"3-C",t:"num",s:"鈦（Ti）為 HCP 結構，a = 0.2951 nm、c = 0.4679 nm，原子量 47.87 g/mol。計算其理論密度。",u:"g/cm³",a:4.51,tol:1.5,h:"HCP 晶胞有 6 個原子，體積 V_C = (3√3/2) a² c。",sol:"V_C = (3√3/2)(2.951×10⁻⁸)²(4.679×10⁻⁸)\n    = 1.059×10⁻²² cm³\nρ = (6)(47.87) / [(1.059×10⁻²²)(6.022×10²³)]\n  = 4.51 g/cm³"},
+ {lv:2,z:"3-E",t:"num",s:"立方晶系中，[100] 與 [111] 兩個晶向之間的夾角是多少度？",u:"°",a:54.7,tol:0.5,h:"cos θ = (u₁u₂ + v₁v₂ + w₁w₂) / (|向量1| |向量2|)。",sol:"cos θ = (1·1 + 0·1 + 0·1) / (1 × √3) = 1/√3\nθ = 54.7°"},
+ {lv:2,z:"3-E",t:"num",s:"立方晶系的 ⟨110⟩ 晶向族共包含幾個晶向（正反方向分開計算）？",u:"個",a:12,tol:0,h:"兩個指數為 ±1、一個為 0。先選哪個位置是 0，再決定另外兩個的正負號。",sol:"0 的位置有 3 種選法；其餘兩個各有 ± 兩種 → 3 × 2 × 2 = 12 個\n例如 [110]、[1̄10]、[11̄0]、[1̄1̄0]、[101]、…"},
+ {lv:2,z:"3-F",t:"mc",s:"某晶面在 x、y、z 軸的截距分別為 −a、b/2、c/3。它的米勒指數為：",o:["(1̄23)","(1̄ ½ ⅓)","(32̄1̄)","(123)"],a:0,e:"截距係數 −1、½、⅓，取倒數得 −1、2、3，已是最小整數，所以是 (1̄23)。"},
+ {lv:2,z:"3-F",t:"mc",s:"立方晶系中，晶向 [uvw] 位於晶面 (hkl) 上的條件是 hu + kv + lw = 0。下列哪一個晶向位於 (111) 面上？",o:["[111]","[110]","[11̄0]","[100]"],a:2,e:"(1)(1) + (1)(−1) + (1)(0) = 0，所以 [11̄0] 在 (111) 面上。[111] 與 (111) 垂直，不在面上。"},
+ {lv:2,z:"3-F",t:"mc",s:"立方晶系中，(110) 與 (111̄) 兩個晶面相交，交線的晶向為：",o:["[001]","[1̄10]","[111]","[110]"],a:1,e:"交線同時位於兩個面上，可用兩個面的指數做外積：(1,1,0) × (1,1,−1) = (−1, 1, 0)，所以是 [1̄10]（或反方向 [11̄0]）。驗算：(110)·[1̄10] = 0、(111̄)·[1̄10] = 0。"},
+ {lv:2,z:"3-G",t:"mc",s:"六方晶系的三指數晶向 [100]（a₁ 方向）換成四指數 [uvtw] 為：",o:["[1000]","[21̄1̄0]","[101̄0]","[11̄00]"],a:1,e:"u = (2U − V)/3 = 2/3、v = (2V − U)/3 = −1/3、t = −(u + v) = −1/3、w = W = 0，乘以 3 得 [21̄1̄0]。"},
+ {lv:2,z:"3-G",t:"num",s:"理想 HCP 結構（原子都是相同大小的硬球）的 c/a 比值是多少？",u:"",a:1.633,tol:0.5,h:"中間層原子坐在下層三個原子形成的四面體凹洞上。正四面體的高 = √(2/3) a，c 是它的兩倍。",sol:"c = 2 × √(2/3) a\nc/a = 2√(2/3) = √(8/3) = 1.633"},
+ {lv:2,z:"3-H",t:"num",s:"α-Fe 為 BCC，R = 0.124 nm。計算 [111] 方向的線密度。",u:"nm⁻¹",a:4.03,tol:1.5,h:"體對角線長 4R，上面淨有幾個原子（兩端各算一半）？",sol:"體對角線長 = √3 a = 4R\n線上原子：兩端各 ½ + 中心 1 = 2 個\nLD = 2 / 4R = 1 / (2 × 0.124) = 4.03 nm⁻¹"},
+ {lv:2,z:"3-H",t:"num",s:"鋁為 FCC，R = 0.143 nm。計算 (111) 晶面的面密度。",u:"nm⁻²",a:14.1,tol:1.5,h:"FCC (111) 面內的原子排成最密的三角形排列，每個原子佔的面積是邊長 2R 的菱形，面積 2√3 R²。",sol:"每個原子佔的面積 = 2√3 R²\nPD = 1 / (2√3 R²) = 1 / [2√3 (0.143)²]\n   = 14.1 nm⁻²"},
+ {lv:2,z:"3-J",t:"multi",s:"α-Fe 為 BCC，a = 0.2866 nm。以 λ = 0.1542 nm 的 X 光照射，求 (110) 晶面的面間距與一階繞射角 2θ。",parts:[["d₁₁₀","nm",0.2027,1],["2θ","°",44.7,0.5]],h:"立方晶系 d = a / √(h² + k² + l²)；再用 nλ = 2d sinθ。",sol:"d₁₁₀ = 0.2866 / √2 = 0.2027 nm\nsinθ = λ / 2d = 0.1542 / (2 × 0.2027) = 0.3804\nθ = 22.36° → 2θ = 44.7°"},
+ {lv:2,z:"3-J",t:"multi",s:"FCC 鋁的 (111) 繞射峰出現在 2θ = 38.5°（λ = 0.1542 nm，一階繞射）。求 (111) 的面間距與晶格常數 a。",parts:[["d₁₁₁","nm",0.2339,1],["a","nm",0.405,1]],h:"先由布拉格定律求 d，再用 a = d √(h² + k² + l²)。",sol:"θ = 19.25°\nd = λ / (2 sinθ) = 0.1542 / (2 × 0.3297) = 0.2339 nm\na = d √3 = 0.405 nm"},
+ {lv:2,z:"3-J",t:"mc",s:"BCC 金屬的 X 光繞射只會出現 h + k + l 為偶數的晶面。下列哪一個晶面的繞射峰「不會」出現？",o:["(110)","(200)","(211)","(100)"],a:3,e:"(100)：1 + 0 + 0 = 1 是奇數，繞射波互相抵消。(110)、(200)、(211) 的和都是偶數，會出現。"},
+ {lv:2,z:"3-J",t:"mc",s:"FCC 金屬只會出現 h、k、l 全為奇數或全為偶數的繞射峰。FCC 圖譜中 2θ 最小的前兩個峰依序是：",o:["(100)、(110)","(110)、(200)","(111)、(200)","(111)、(220)"],a:2,e:"符合「全奇或全偶」且 h² + k² + l² 最小的是 (111)（3），其次 (200)（4）。d 越大 2θ 越小，所以前兩個峰是 (111)、(200)。"},
+ {lv:2,z:"3-I",t:"mc",s:"噴射引擎的渦輪葉片常做成「單晶」，主要目的是：",o:["降低密度","去除晶界，避免高溫下沿晶界發生潛變與破壞","讓材料變成非晶質","提高導電性"],a:1,e:"高溫下晶界是原子容易擴散、滑動的弱點；做成單晶就沒有晶界，可大幅提高高溫潛變強度。"}
+];
+CH4.bank=CH4.bank||[];CH12.bank=CH12.bank||[];
+[CH2,CH3,CH4,CH12].forEach(ch=>{const c={1:0,2:0};ch.bank.forEach(q=>{c[q.lv]++;q.pk="b"+q.lv+"_"+c[q.lv]})});
 CH2.moreRange="2.1–2.15";CH3.moreRange="3.1–3.44";
 
 /* ================= Learning record ================= */
@@ -2223,7 +2311,7 @@ function trSummary(ch){const c=chp(ch.num),qs=allQs(ch);c.total=qs.length;c.done
 function trChanged(n){const c=chp(n);c.changed=Date.now();state.prog.last=Date.now();save();TR.dirty=true;clearTimeout(TR.timer);TR.timer=setTimeout(srvSave,3000);updSubmit()}
 function trRecord(ch,key,ok){const c=chp(ch.num),r=c.qs[key]||{ok:false,tries:0};const wasOk=!!r.ok,prevTries=r.tries||0;r.tries=prevTries+1;r.ok=!!(r.ok||ok);c.qs[key]=r;trSummary(ch);trChanged(ch.num);
   if(window.GAME&&ok&&!wasOk){const q=(allQs(ch).find(x=>x[0]===key)||[])[1]||{};const zi=/^z(\d+)-/.exec(key);const z=zi?ch.zones[+zi[1]]:null;
-    GAME.answer({id:K(ch,key),ok:true,first:prevTries===0,practice:key.startsWith("p_"),wasWrong:prevTries>0,kind:q.t==="open"?"open":"auto",zone:z?{key:"c"+ch.num+"-"+z.code,label:z.code+" "+z.title}:null});
+    GAME.answer({id:K(ch,key),ok:true,first:prevTries===0,practice:key.startsWith("p_")||key.startsWith("b2_"),wasWrong:prevTries>0,kind:q.t==="open"?"open":"auto",zone:z?{key:"c"+ch.num+"-"+z.code,label:z.code+" "+z.title}:null});
     if(window.GAME)GAME.setWeak(weakZone())}
   else if(window.GAME&&!ok&&!wasOk&&((allQs(ch).find(x=>x[0]===key)||[])[1]||{}).t!=="open")GAME.wrong({id:K(ch,key)})}
 function weakZone(){let best=null;const touched=CHAPTERS.filter(c=>Object.keys(chp(c.num).qs||{}).length);(touched.length?touched:[CHAPTERS[cur]||CHAPTERS[0]]).forEach(c=>{const cq=chp(c.num).qs||{};c.zones.forEach((z,zi)=>{const n=z.qs.length;const ok=z.qs.filter((_,qi)=>cq["z"+zi+"-"+qi]&&cq["z"+zi+"-"+qi].ok).length;const f=ok/n;if(ok<n&&(!best||f<best.f))best={f,key:"c"+c.num+"-"+z.code,label:"第 "+c.num+" 章 "+z.code+" "+z.title}})});return best?{key:best.key,label:best.label}:null}
