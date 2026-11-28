@@ -88,11 +88,30 @@ let cbn=0;function call(params){return new Promise(res=>{const cb="__qz"+(++cbn)
  window[cb]=t=>{let r=null;try{r=JSON.parse(t)}catch(e){}fin(r||{err:"伺服器回應格式錯誤"})};s.onerror=()=>fin({err:"連線失敗，請檢查網路後再試"});setTimeout(()=>fin({err:"連線逾時，請再試一次"}),30000);s.src=u.toString();document.head.appendChild(s)})}
 function parseNum(raw){let s=String(raw).trim().replace(/[，,\s]/g,"").replace(/[−–—]/g,"-").replace(/[×xX*]10\^?/,"e").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g,m=>m.replace(/⁻/g,"-").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,c=>"⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(c)));if(/^e/i.test(s))s="1"+s;const x=Number(s);return s===""?NaN:x}
 /* 角色與寶物（只影響故事與寶物名稱，不影響分數） */
-const ROLES={smith:{ic:"🔨",name:"鍛造師",line:"火爐旁長大的你，最懂金屬受力後的脾氣。",tr:{"傳說":["⚔️","玄鐵神劍"],"史詩":["🪓","精鋼戰斧"],"稀有":["🗡️","鍛鐵匕首"],"普通":["📿","鐵釘護符"]}},
- engineer:{ic:"🏗️",name:"結構工程師",line:"你看一眼橋，就能想像每根鋼索上的應力。",tr:{"傳說":["🌉","天穹鋼索"],"史詩":["🏛️","不朽樑柱"],"稀有":["🧱","鋼骨模型"],"普通":["🔩","鉚釘徽章"]}},
- detective:{ic:"🔬",name:"材料偵探",line:"任何破損都逃不過你的眼睛，數據會說話。",tr:{"傳說":["🔭","全知顯微鏡"],"史詩":["📍","硬度神針"],"稀有":["🔍","偵探放大鏡"],"普通":["📓","偵探筆記"]}},
- inspector:{ic:"⚖️",name:"品管師",line:"規格就是你的信仰，安全係數是你的盾牌。",tr:{"傳說":["⚖️","真理天秤"],"史詩":["📏","精準量規"],"稀有":["🧾","檢驗印章"],"普通":["🏷️","合格標籤"]}}};
-const roleOf=k=>ROLES[k]||ROLES.smith;
+const R_=(ic,name,line,a,b,c,d)=>({ic,name,line,tr:{"傳說":a,"史詩":b,"稀有":c,"普通":d}});
+const ROLESETS={
+ 2:{alchemist:R_("⚗️","鍊金術士","你相信萬物都由原子組成，只要看懂電子就能看懂物質。",["💠","賢者之石"],["🧪","元素藥劑"],["🔮","電子水晶"],["📜","週期表卷軸"]),
+  spectro:R_("🌈","光譜學家","每一道光的顏色，都是電子跳躍留下的指紋。",["🌈","彩虹稜鏡"],["💡","霓虹燈芯"],["🔦","光譜手電筒"],["🕯️","鈉光蠟燭"]),
+  pilot:R_("⚡","電子領航員","你能預測每一個電子會落在哪個軌域。",["🛸","量子飛船"],["🧭","軌域羅盤"],["⚡","雷電徽章"],["🔋","小電池"]),
+  builder:R_("🧩","分子建築師","鍵結就是你的磚塊，離子、共價、金屬隨你搭。",["🏰","鍵結城堡"],["🧱","共價積木"],["🔗","離子鎖鏈"],["🪢","凡得瓦繩結"])},
+ 3:{jeweler:R_("💎","寶石匠","你看一眼切面就知道原子怎麼排。",["👑","晶體王冠"],["💍","鑽石戒指"],["📿","水晶項鍊"],["🔹","晶片碎鑽"]),
+  crystal:R_("🔷","晶體學家","FCC、BCC、HCP 在你腦中自動旋轉。",["🌐","布拉菲天球"],["🔷","米勒稜鏡"],["🧊","單位晶胞"],["📐","晶向尺規"]),
+  xray:R_("📡","X 光繞射師","布拉格定律是你的咒語，繞射峰就是答案。",["🔭","繞射神鏡"],["📡","X 光天線"],["🎯","布拉格標靶"],["📈","繞射圖譜"]),
+  apprentice:R_("⚒️","冶金學徒","你從秤重、量體積開始，一步步算出金屬的祕密。",["🏆","密度聖盃"],["⚖️","精密天平"],["🪙","金屬試片"],["🧮","計算尺"])},
+ 4:{fab:R_("🖥️","晶圓工程師","無塵室是你的戰場，一個缺陷都不放過。",["🌟","零缺陷晶圓"],["💾","完美晶片"],["🔌","銅導線"],["🧤","無塵手套"]),
+  hunter:R_("🔬","顯微鏡獵人","晶界、雙晶、差排，都逃不過你的鏡頭。",["🔭","原子之眼"],["🔬","電子顯微鏡"],["🔍","金相放大鏡"],["🖼️","金相照片"]),
+  mixer:R_("🧪","合金調配師","wt% 和 at% 在你手中隨意轉換。",["🥇","純金配方"],["🏅","K 金獎章"],["🧪","合金試管"],["🥄","秤量匙"]),
+  healer:R_("🩹","缺陷修補師","你知道每一種缺陷的來龍去脈，也知道怎麼利用它。",["✨","晶格聖光"],["🛡️","差排盾牌"],["🩹","空位貼布"],["🪡","修補針"])},
+ 6:{smith:R_("🔨","鍛造師","火爐旁長大的你，最懂金屬受力後的脾氣。",["⚔️","玄鐵神劍"],["🪓","精鋼戰斧"],["🗡️","鍛鐵匕首"],["📿","鐵釘護符"]),
+  engineer:R_("🏗️","結構工程師","你看一眼橋，就能想像每根鋼索上的應力。",["🌉","天穹鋼索"],["🏛️","不朽樑柱"],["🧱","鋼骨模型"],["🔩","鉚釘徽章"]),
+  detective:R_("🔬","材料偵探","任何破損都逃不過你的眼睛，數據會說話。",["🔭","全知顯微鏡"],["📍","硬度神針"],["🔍","偵探放大鏡"],["📓","偵探筆記"]),
+  inspector:R_("⚖️","品管師","規格就是你的信仰，安全係數是你的盾牌。",["⚖️","真理天秤"],["📏","精準量規"],["🧾","檢驗印章"],["🏷️","合格標籤"])},
+ 12:{potter:R_("🏺","陶藝家","泥土、釉藥、窯火，你懂陶瓷的每一種脾氣。",["🏺","千年名窯"],["🍵","青瓷茶碗"],["🫖","陶壺"],["🧱","素燒磚"]),
+  glass:R_("🫙","玻璃工匠","你知道矽氧四面體怎麼連成透明的網。",["🔮","不碎水晶球"],["📱","強化玻璃盾"],["🫙","玻璃瓶"],["🥛","玻璃杯"]),
+  gem:R_("💍","寶石鑑定師","鑽石、石墨、剛玉，一眼看穿它們的結構。",["💎","鑽石之劍"],["💍","藍寶石戒指"],["✏️","石墨筆"],["🪨","礦石標本"]),
+  space:R_("🚀","太空材料工程師","耐火磚、隔熱瓦，你為最極端的環境挑材料。",["🚀","太空梭隔熱瓦"],["🛰️","衛星護甲"],["🔥","耐火磚"],["🧯","隔熱手套"])}};
+const ROLES=ROLESETS[CH]||ROLESETS[6];
+const roleOf=k=>ROLES[k]||Object.values(ROLES)[0];
 /* ---------- 列表 ---------- */
 async function list(){const m=me();if(!m.sid){$("main").innerHTML=`<p class="muted">輸入學號後就能看到本章的小考與闖關。</p>`;return}
  $("main").innerHTML=`<p class="muted">載入中…</p>`;const r=await call({op:"list",u:m.sid,ch:CH});
@@ -135,11 +154,11 @@ async function startQuest(it){const m=me();let role=it.cur?it.role:"";
  if(!it.cur){$("main").innerHTML=`<h2>選擇你的身分</h2><p class="muted">身分只影響故事敘述與寶物外觀，所有人的題目難度與加分標準都一樣。這是第 ${it.used+1} 次挑戰（共 ${it.tries} 次，取最高分）。</p><div class="roles">${Object.entries(ROLES).map(([k,v])=>`<button class="role" data-r="${k}"><div class="ic">${v.ic}</div><b>${v.name}</b><div class="muted">${v.line}</div></button>`).join("")}</div><p><button class="b ghost" onclick="list()">返回</button></p>`;
   role=await new Promise(res=>$("main").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>res(b.dataset.r)))}
  $("main").innerHTML=`<p class="muted">展開冒險地圖…</p>`;const r=await call({op:"start",u:m.sid,name:m.sname,code:it.code,role});if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">返回</button>`;return}
- const R=roleOf(r.role);let hp=100;
+ const R=roleOf(r.role);let hp=100;const bp=r.parts.find(x=>x.boss),BN=bp?(bp.title.split("・")[1]||"魔王"):"魔王",BS=BN.slice(-2);
  const stage=si=>{const p=r.parts[si],boss=p.boss,dk="qz-draft-"+r.id+"-"+si;
   $("main").innerHTML=`<div id="stg"><h2>${R.ic} ${esc(r.name)}</h2><div class="map">${r.parts.map((x,i)=>`<span class="node ${i<si?"done":i===si?"cur":""}">${x.boss?"👹 ":""}${esc(x.title.split("・")[1]||x.title)}</span>`).join("<span>→</span>")}</div>
    <div class="story"><div class="who">${esc(p.title)}</div>${esc(p.story)}<div class="muted" style="margin-top:6px">${R.ic} ${R.name}：「${si===0?R.line:boss?"這就是最後一戰了，把學過的全部用上！":"繼續前進，下一個難題在等著我。"}」</div></div>
-   ${boss?`<div><b>👹 鏽蝕魔龍</b><div class="hp"><i id="hpb" style="width:${hp}%"></i></div></div>`:""}
+   ${boss?`<div><b>👹 ${esc(BN)}</b><div class="hp"><i id="hpb" style="width:${hp}%"></i></div></div>`:""}
    ${p.qs.map((q,i)=>qHTML(q,(i+1)+".")).join("")}
    ${boss?`<div class="q"><p><b>最後的反思（不計分，會傳給老師）</b><br>這一章的觀念，還可以用在生活中的哪裡？舉一個例子。</p><textarea id="refl" rows="3" style="width:100%"></textarea></div>`:""}
    <div class="row" style="margin-top:12px"><button class="b acc" id="go">${boss?"⚔️ 發動攻擊":"提交這一關"}</button><span class="muted" id="msg">每一關提交後立刻批改，不能重答。</span></div></div>`;
@@ -150,7 +169,7 @@ async function startQuest(it){const m=me();let role=it.cur?it.role:"";
    if(res.err){sent=false;$("go").disabled=false;$("msg").innerHTML=`<span class="err">${esc(res.err)}</span>`;return}
    ls.del(dk);showRes(res.res);const okn=res.res.filter(x=>x.ok).length;
    if(boss){hp=Math.max(0,Math.round(100*(1-okn/res.res.length)));setTimeout(()=>{const e=$("hpb");if(e)e.style.width=hp+"%"},50)}
-   $("go").remove();$("msg").outerHTML=`<div class="card" style="width:100%">${boss?(hp===0?"💥 魔龍被徹底擊倒！":hp<50?"⚡ 魔龍重傷逃走了！":"🛡️ 魔龍擋下了大部分攻擊…"):`這一關答對 ${okn}/${res.res.length} 題。`}<p style="margin:8px 0 0"><button class="b acc" id="nx">${res.finished?"🎁 領取寶物":"前往下一關 →"}</button></p></div>`;
+   $("go").remove();$("msg").outerHTML=`<div class="card" style="width:100%">${boss?(hp===0?`💥 ${BS}被徹底擊倒！`:hp<50?`⚡ ${BS}重傷逃走了！`:`🛡️ ${BS}擋下了大部分攻擊…`):`這一關答對 ${okn}/${res.res.length} 題。`}<p style="margin:8px 0 0"><button class="b acc" id="nx">${res.finished?"🎁 領取寶物":"前往下一關 →"}</button></p></div>`;
    $("nx").onclick=()=>res.finished?treasure(res,R):stage(si+1)}};
  const treasure=(res,R)=>{const t=res.tier,tr=R.tr[t.tier]||R.tr["普通"],bt=res.best_tier;
   $("main").innerHTML=`<div class="card treasure"><div class="big">${tr[0]}</div><p style="margin:4px 0"><span class="tier t-${t.tier}">${t.tier}</span></p><h2 style="margin:6px 0">${R.name}的「${tr[1]}」</h2><p class="score">${res.score}<span style="font-size:1rem"> 分</span></p><p>本次寶物加分 <b>${t.bonus}</b> 分${bt&&bt.tier!==t.tier?`・你目前最好的紀錄是 <span class="tier t-${bt.tier}">${bt.tier}</span>（${res.best} 分）`:""}</p><p class="muted">成績取最高的一次（已挑戰 ${res.used}/${res.tries} 次）。</p><button class="b" onclick="list()">回到列表</button></div>`};
