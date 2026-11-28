@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>小考與情境闖關｜材料科學與工程導論</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+:root{--bg:#f3f5f6;--paper:#fff;--ink:#18232b;--muted:#5b6b75;--line:#d5dde2;--accent:#b4531f;--accent-soft:#f6e4d9;--steel:#2f5d78;--steel-soft:#e1ecf2;--ok:#2c7a4b;--ok-soft:#e1f2e7;--bad:#b3261e;--bad-soft:#fbe5e3;--gold:#b8860b;
+ --f-display:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;--f-body:"Noto Sans TC","IBM Plex Sans",system-ui,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181d;--paper:#18222a;--ink:#e3eaee;--muted:#93a4ae;--line:#2c3a44;--accent:#e58a52;--accent-soft:#3a2518;--steel:#7fb2d0;--steel-soft:#1c2f3b;--ok:#6cc58f;--ok-soft:#173326;--bad:#f08a80;--bad-soft:#3a1d1b;--gold:#e0b84a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11181d;--paper:#18222a;--ink:#e3eaee;--muted:#93a4ae;--line:#2c3a44;--accent:#e58a52;--accent-soft:#3a2518;--steel:#7fb2d0;--steel-soft:#1c2f3b;--ok:#6cc58f;--ok-soft:#173326;--bad:#f08a80;--bad-soft:#3a1d1b;--gold:#e0b84a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75}
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+.course{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
+h1{font-family:var(--f-display);font-weight:900;font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.2;margin:4px 0}
+.back{font-size:.9rem;color:var(--steel)}
+h2{font-family:var(--f-display);font-size:1.25rem;margin:24px 0 10px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:12px 0}
+.muted{color:var(--muted);font-size:.9rem}
+.b{font:inherit;font-size:.92rem;font-weight:600;padding:7px 16px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:6px;cursor:pointer}
+.b.ghost{background:transparent;color:var(--ink)}.b.acc{background:var(--accent);border-color:var(--accent)}
+.b:disabled{opacity:.45;cursor:not-allowed}
+input,textarea{font:inherit;padding:7px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--steel);border-color:var(--steel)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.72rem;border:1px solid currentColor;border-radius:4px;padding:0 6px;margin-right:6px}
+.tag.tq{color:var(--steel)}.tag.ts{color:var(--accent)}
+.stat{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.q{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+.q .no{font-family:var(--f-mono);font-weight:700;color:var(--accent);margin-right:6px}
+.q p{margin:0 0 10px}
+.opt{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px;cursor:pointer}
+.opt:hover{background:var(--steel-soft)}
+.opt input{margin-top:6px}
+.unit{margin-left:6px;color:var(--muted)}
+.fmt{font-size:.8rem;color:var(--muted);margin-top:4px}
+.res{margin-top:10px;padding:10px 12px;border-radius:6px;font-size:.92rem;white-space:pre-line}
+.res.ok{background:var(--ok-soft)}.res.bad{background:var(--bad-soft)}
+.res b{display:block}
+.timer{position:sticky;top:0;z-index:5;background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:0 0 8px 8px;display:flex;justify-content:space-between;font-family:var(--f-mono)}
+.timer.low{background:var(--bad)}
+.score{font-family:var(--f-display);font-size:2.6rem;font-weight:900;line-height:1}
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.role{border:2px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--paper);text-align:left;font:inherit;color:inherit}
+.role:hover,.role.on{border-color:var(--accent)}
+.role .ic{font-size:2rem}
+.map{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.node{padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);font-size:.82rem}
+.node.done{background:var(--ok-soft);border-color:var(--ok)}.node.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.story{background:var(--steel-soft);border-left:4px solid var(--steel);padding:12px 14px;border-radius:6px;margin:10px 0}
+.story .who{font-weight:700;color:var(--steel)}
+.hp{height:16px;background:var(--line);border-radius:8px;overflow:hidden;margin:6px 0}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,#7b1fa2,var(--bad));transition:width 1s}
+.treasure{text-align:center;padding:24px 16px}
+.treasure .big{font-size:4rem;line-height:1.2}
+.tier{display:inline-block;padding:2px 14px;border-radius:999px;font-weight:700;color:#fff}
+.t-傳說{background:linear-gradient(90deg,#b8860b,#e0b84a)}.t-史詩{background:#7b1fa2}.t-稀有{background:#2f5d78}.t-普通{background:#6b7a84}
+.err{color:var(--bad);font-weight:600}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header class="top"><p class="course">Introduction to Materials Science and Engineering</p><h1 id="ttl">小考與情境闖關</h1><a class="back" id="backlink" href="./">← 回練習簿</a></header>
+ <div id="who" class="card"></div>
+ <main id="main"><p class="muted">載入中…</p></main>
+</div>
+<script>
+const API="https://script.google.com/macros/s/AKfycbxdty7M2R94i6-U_0SKF-ca8I1tQ-ROGE60gInag7uyXEYP-uLg_hzRAgEi5BRMfxsYjg/exec";
+const CH=+(new URLSearchParams(location.search).get("ch")||6);
+const $=id=>document.getElementById(id),esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+$("backlink").href="./?ch="+CH;
+/* 學號：沿用練習簿登入 */
+function me(){const wb=ls.get("matsci-wb-v4",null),p=wb&&wb.prog||{};const o=ls.get("matsci-exam-me",{});return {sid:(p.sid||o.sid||"").trim(),sname:(p.sname||o.sname||"").trim()}}
+function whoUI(){const m=me();$("who").innerHTML=m.sid?`<div class="row"><span>作答者：<b>${esc(m.sid)}</b> ${esc(m.sname)}</span><button class="b ghost" id="chg">更換</button></div><p class="muted" style="margin:6px 0 0">成績以學號記錄並傳給老師。請確認是你自己的學號。</p>`
+ :`<div class="row"><b>請先輸入學號與姓名</b><input id="isid" placeholder="學號" style="width:9em"><input id="iname" placeholder="姓名" style="width:7em"><button class="b" id="ok">確定</button></div>`;
+ if(m.sid)$("chg").onclick=()=>{ls.set("matsci-exam-me",{});const wb=ls.get("matsci-wb-v4",null);if(wb&&wb.prog){wb.prog.sid="";wb.prog.sname="";ls.set("matsci-wb-v4",wb)}whoUI();list()};
+ else $("ok").onclick=()=>{const s=$("isid").value.trim(),n=$("iname").value.trim();if(!s||!n){alert("學號與姓名都要填");return}ls.set("matsci-exam-me",{sid:s,sname:n});const wb=ls.get("matsci-wb-v4",null);if(wb&&wb.prog&&!wb.prog.sid){wb.prog.sid=s;wb.prog.sname=n;ls.set("matsci-wb-v4",wb)}whoUI();list()}}
+/* JSONP */
+let cbn=0;function call(params){return new Promise(res=>{const cb="__qz"+(++cbn)+"_"+Date.now();const u=new URL(API);Object.entries(Object.assign({action:"quiz",cb},params)).forEach(([k,v])=>u.searchParams.set(k,v));
+ const s=document.createElement("script");let done=false;const fin=v=>{if(done)return;done=true;delete window[cb];s.remove();res(v)};
+ window[cb]=t=>{let r=null;try{r=JSON.parse(t)}catch(e){}fin(r||{err:"伺服器回應格式錯誤"})};s.onerror=()=>fin({err:"連線失敗，請檢查網路後再試"});setTimeout(()=>fin({err:"連線逾時，請再試一次"}),30000);s.src=u.toString();document.head.appendChild(s)})}
+function parseNum(raw){let s=String(raw).trim().replace(/[，,\s]/g,"").replace(/[−–—]/g,"-").replace(/[×xX*]10\^?/,"e").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g,m=>m.replace(/⁻/g,"-").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,c=>"⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(c)));if(/^e/i.test(s))s="1"+s;const x=Number(s);return s===""?NaN:x}
+/* 角色與寶物（只影響故事與寶物名稱，不影響分數） */
+const ROLES={smith:{ic:"🔨",name:"鍛造師",line:"火爐旁長大的你，最懂金屬受力後的脾氣。",tr:{"傳說":["⚔️","玄鐵神劍"],"史詩":["🪓","精鋼戰斧"],"稀有":["🗡️","鍛鐵匕首"],"普通":["📿","鐵釘護符"]}},
+ engineer:{ic:"🏗️",name:"結構工程師",line:"你看一眼橋，就能想像每根鋼索上的應力。",tr:{"傳說":["🌉","天穹鋼索"],"史詩":["🏛️","不朽樑柱"],"稀有":["🧱","鋼骨模型"],"普通":["🔩","鉚釘徽章"]}},
+ detective:{ic:"🔬",name:"材料偵探",line:"任何破損都逃不過你的眼睛，數據會說話。",tr:{"傳說":["🔭","全知顯微鏡"],"史詩":["📍","硬度神針"],"稀有":["🔍","偵探放大鏡"],"普通":["📓","偵探筆記"]}},
+ inspector:{ic:"⚖️",name:"品管師",line:"規格就是你的信仰，安全係數是你的盾牌。",tr:{"傳說":["⚖️","真理天秤"],"史詩":["📏","精準量規"],"稀有":["🧾","檢驗印章"],"普通":["🏷️","合格標籤"]}}};
+const roleOf=k=>ROLES[k]||ROLES.smith;
+/* ---------- 列表 ---------- */
+async function list(){const m=me();if(!m.sid){$("main").innerHTML=`<p class="muted">輸入學號後就能看到本章的小考與闖關。</p>`;return}
+ $("main").innerHTML=`<p class="muted">載入中…</p>`;const r=await call({op:"list",u:m.sid,ch:CH});
+ if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">重試</button>`;return}
+ const tiers=r.tiers||[];$("ttl").textContent=`第 ${CH} 章 小考與情境闖關`;
+ if(!r.items.length){$("main").innerHTML=`<p class="muted">這一章還沒有小考或闖關。</p>`;return}
+ const card=i=>{const left=i.tries-i.used,isQ=i.type==="小考";return `<div class="card item"><div><span class="tag ${isQ?"tq":"ts"}">${i.type}</span><b>${esc(i.name)}</b>
+  <div class="stat">${isQ?`${i.n} 題・限時 ${i.min||"不限"} 分`:"3 關＋魔王關・不限時"}・已作答 ${i.used}/${i.tries} 次${i.best!==null?`・最高 <b style="color:var(--ink)">${i.best}</b> 分`:""}${i.tier?`・寶物 <span class="tier t-${i.tier.tier}">${i.tier.tier}</span> 加分 ${i.tier.bonus}`:""}</div>${i.open?"":`<div class="err">老師目前未開放</div>`}</div>
+  <div><button class="b ${isQ?"":"acc"}" data-go="${i.code}" ${(!i.open||(!i.cur&&left<=0))?"disabled":""}>${i.cur?"繼續作答":left<=0?"次數已用完":i.used?"再挑戰一次":"開始"}</button></div></div>`};
+ $("main").innerHTML=`<h2>📝 小考</h2>${r.items.filter(i=>i.type==="小考").map(card).join("")||'<p class="muted">無</p>'}
+  <p class="muted">每次小考從題庫隨機抽題，計算題的數字每次都不同；最多作答 ${r.items[0].tries} 次，成績取最高分。開始後計時，時間到會自動交卷。</p>
+  <h2>🗺️ 情境闖關</h2>${r.items.filter(i=>i.type==="闖關").map(card).join("")||'<p class="muted">無</p>'}
+  <p class="muted">用本章（和前面章節）學到的觀念解決生活中的工程問題。打倒魔王後依分數獲得寶物：${tiers.map(t=>`<span class="tier t-${t.tier}">${t.tier}</span> ≥${t.min} 分（加分 ${t.bonus}）`).join("　")}。角色只影響故事與寶物外觀，不影響分數。</p>`;
+ $("main").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const it=r.items.find(x=>x.code===b.dataset.go);if(it.type==="小考")startQuiz(it);else startQuest(it)})}
+/* ---------- 題目 ---------- */
+function qHTML(q,no){return `<div class="q" id="q-${q.k}"><p><span class="no">${no}</span>${esc(q.s).replace(/\n/g,"<br>")}</p>${q.t==="mc"?q.o.map((o,i)=>`<label class="opt"><input type="radio" name="r-${q.k}" value="${i}"><span>(${"ABCD"[i]}) ${esc(o)}</span></label>`).join("")
+ :`<div class="row"><input id="i-${q.k}" inputmode="decimal" autocomplete="off" style="width:12em" aria-label="答案"><span class="unit">${esc(q.u)}</span></div><div class="fmt">可輸入 0.0123、1.23e-2 或 1.23×10^-2</div>`}<div class="out"></div></div>`}
+function getAns(qs){const a={},bad=[];qs.forEach(q=>{if(q.t==="mc"){const c=document.querySelector(`input[name="r-${q.k}"]:checked`);if(c)a[q.k]=+c.value}else{const v=$("i-"+q.k).value.trim();if(v){const x=parseNum(v);if(isNaN(x))bad.push(q.k);else a[q.k]=x}}});return {a,bad}}
+function fill(qs,a){qs.forEach(q=>{if(!(q.k in a))return;if(q.t==="mc"){const c=document.querySelector(`input[name="r-${q.k}"][value="${a[q.k]}"]`);if(c)c.checked=true}else{const e=$("i-"+q.k);if(e)e.value=a[q.k]}})}
+function showRes(res){res.forEach(x=>{const el=document.querySelector(`#q-${CSS.escape(x.k)} .out`);if(!el)return;el.innerHTML=`<div class="res ${x.ok?"ok":"bad"}"><b>${x.ok?"✓ 答對":"✗ 答錯"}　正確答案：${esc(x.ans)}</b>${esc(x.sol||"")}</div>`;document.querySelectorAll(`#q-${CSS.escape(x.k)} input`).forEach(i=>i.disabled=true)})}
+/* ---------- 小考 ---------- */
+let tick=null;
+async function startQuiz(it){const m=me();if(!it.cur&&!confirm(`開始「${it.name}」？\n限時 ${it.min} 分鐘，開始後計時（這是第 ${it.used+1} 次，共 ${it.tries} 次）。`))return;
+ $("main").innerHTML=`<p class="muted">出題中…</p>`;const r=await call({op:"start",u:m.sid,name:m.sname,code:it.code});if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">返回</button>`;return}
+ const qs=r.parts[0].qs,dk="qz-draft-"+r.id,off=r.now-Date.now();
+ $("main").innerHTML=`<div id="stg"><div class="timer" id="tm"><span>${esc(r.name)}（第 ${r.n} 次）</span><span id="tleft"></span></div>${qs.map((q,i)=>qHTML(q,(i+1)+".")).join("")}<div class="row" style="margin-top:14px"><button class="b acc" id="sub">交卷</button><span class="muted" id="msg">作答會自動暫存在這台裝置；中途離開，可以按「繼續作答」回來。</span></div></div>`;
+ fill(qs,ls.get(dk,{}));$("stg").addEventListener("input",()=>ls.set(dk,getAns(qs).a));$("stg").addEventListener("change",()=>ls.set(dk,getAns(qs).a));
+ let sent=false;const submit=async(auto)=>{if(sent)return;const {a,bad}=getAns(qs);
+  if(!auto){if(bad.length){alert("有答案不是數字，請檢查標紅的題目");bad.forEach(k=>$("i-"+k).style.borderColor="var(--bad)");return}const blank=qs.length-Object.keys(a).length;if(!confirm(blank?`還有 ${blank} 題沒作答，確定交卷？`:"確定交卷？"))return}
+  sent=true;clearInterval(tick);$("sub").disabled=true;$("msg").textContent="批改中…";
+  let res=null;for(let t=0;t<3&&!(res&&!res.err&&res.ok);t++){res=await call({op:"submit",u:m.sid,id:r.id,ans:JSON.stringify(a)});if(res&&res.err&&/已經交卷/.test(res.err))break}
+  if(!res||res.err){sent=false;$("sub").disabled=false;$("msg").innerHTML=`<span class="err">${esc(res&&res.err||"交卷失敗")}，請再按一次交卷</span>`;return}
+  ls.del(dk);document.querySelectorAll("#main .q input").forEach(i=>i.disabled=true);showRes(res.res);$("tm").classList.add("hide");$("sub").remove();
+  $("msg").outerHTML=`<div class="card" style="width:100%"><div class="row"><span class="score">${res.score}</span><span>分　${res.status==="逾時交卷"?'<span class="err">（逾時交卷）</span>':""}</span></div><p class="muted" style="margin:6px 0">本次答對 ${res.res.filter(x=>x.ok).length}/${res.res.length} 題・目前最高 ${res.best} 分・已作答 ${res.used}/${res.tries} 次。下方有每題的正確答案與詳解。</p><button class="b" onclick="list()">回到列表</button></div>`;window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})};
+ $("sub").onclick=()=>submit(false);
+ const upd=()=>{const left=Math.round((r.deadline-(Date.now()+off))/1000);if(!r.deadline){$("tleft").textContent="不限時";return}if(left<=0){$("tleft").textContent="時間到，自動交卷";submit(true);return}$("tleft").textContent=`剩餘 ${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`;$("tm").classList.toggle("low",left<=120)};
+ clearInterval(tick);tick=setInterval(upd,1000);upd()}
+/* ---------- 闖關 ---------- */
+async function startQuest(it){const m=me();let role=it.cur?it.role:"";
+ if(!it.cur){$("main").innerHTML=`<h2>選擇你的身分</h2><p class="muted">身分只影響故事敘述與寶物外觀，所有人的題目難度與加分標準都一樣。這是第 ${it.used+1} 次挑戰（共 ${it.tries} 次，取最高分）。</p><div class="roles">${Object.entries(ROLES).map(([k,v])=>`<button class="role" data-r="${k}"><div class="ic">${v.ic}</div><b>${v.name}</b><div class="muted">${v.line}</div></button>`).join("")}</div><p><button class="b ghost" onclick="list()">返回</button></p>`;
+  role=await new Promise(res=>$("main").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>res(b.dataset.r)))}
+ $("main").innerHTML=`<p class="muted">展開冒險地圖…</p>`;const r=await call({op:"start",u:m.sid,name:m.sname,code:it.code,role});if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">返回</button>`;return}
+ const R=roleOf(r.role);let hp=100;
+ const stage=si=>{const p=r.parts[si],boss=p.boss,dk="qz-draft-"+r.id+"-"+si;
+  $("main").innerHTML=`<div id="stg"><h2>${R.ic} ${esc(r.name)}</h2><div class="map">${r.parts.map((x,i)=>`<span class="node ${i<si?"done":i===si?"cur":""}">${x.boss?"👹 ":""}${esc(x.title.split("・")[1]||x.title)}</span>`).join("<span>→</span>")}</div>
+   <div class="story"><div class="who">${esc(p.title)}</div>${esc(p.story)}<div class="muted" style="margin-top:6px">${R.ic} ${R.name}：「${si===0?R.line:boss?"這就是最後一戰了，把學過的全部用上！":"繼續前進，下一個難題在等著我。"}」</div></div>
+   ${boss?`<div><b>👹 鏽蝕魔龍</b><div class="hp"><i id="hpb" style="width:${hp}%"></i></div></div>`:""}
+   ${p.qs.map((q,i)=>qHTML(q,(i+1)+".")).join("")}
+   ${boss?`<div class="q"><p><b>最後的反思（不計分，會傳給老師）</b><br>這一章的觀念，還可以用在生活中的哪裡？舉一個例子。</p><textarea id="refl" rows="3" style="width:100%"></textarea></div>`:""}
+   <div class="row" style="margin-top:12px"><button class="b acc" id="go">${boss?"⚔️ 發動攻擊":"提交這一關"}</button><span class="muted" id="msg">每一關提交後立刻批改，不能重答。</span></div></div>`;
+  fill(p.qs,ls.get(dk,{}));$("stg").addEventListener("change",()=>ls.set(dk,getAns(p.qs).a));$("stg").addEventListener("input",()=>ls.set(dk,getAns(p.qs).a));
+  let sent=false;$("go").onclick=async()=>{if(sent)return;const {a,bad}=getAns(p.qs);if(bad.length){alert("有答案不是數字，請檢查");return}
+   const blank=p.qs.length-Object.keys(a).length;if(!confirm(blank?`還有 ${blank} 題沒作答，確定提交？`:"確定提交這一關？"))return;
+   sent=true;$("go").disabled=true;$("msg").textContent="判定中…";const res=await call({op:"submit",u:m.sid,id:r.id,part:si,ans:JSON.stringify(a),refl:boss?($("refl").value||""):""});
+   if(res.err){sent=false;$("go").disabled=false;$("msg").innerHTML=`<span class="err">${esc(res.err)}</span>`;return}
+   ls.del(dk);showRes(res.res);const okn=res.res.filter(x=>x.ok).length;
+   if(boss){hp=Math.max(0,Math.round(100*(1-okn/res.res.length)));setTimeout(()=>{const e=$("hpb");if(e)e.style.width=hp+"%"},50)}
+   $("go").remove();$("msg").outerHTML=`<div class="card" style="width:100%">${boss?(hp===0?"💥 魔龍被徹底擊倒！":hp<50?"⚡ 魔龍重傷逃走了！":"🛡️ 魔龍擋下了大部分攻擊…"):`這一關答對 ${okn}/${res.res.length} 題。`}<p style="margin:8px 0 0"><button class="b acc" id="nx">${res.finished?"🎁 領取寶物":"前往下一關 →"}</button></p></div>`;
+   $("nx").onclick=()=>res.finished?treasure(res,R):stage(si+1)}};
+ const treasure=(res,R)=>{const t=res.tier,tr=R.tr[t.tier]||R.tr["普通"],bt=res.best_tier;
+  $("main").innerHTML=`<div class="card treasure"><div class="big">${tr[0]}</div><p style="margin:4px 0"><span class="tier t-${t.tier}">${t.tier}</span></p><h2 style="margin:6px 0">${R.name}的「${tr[1]}」</h2><p class="score">${res.score}<span style="font-size:1rem"> 分</span></p><p>本次寶物加分 <b>${t.bonus}</b> 分${bt&&bt.tier!==t.tier?`・你目前最好的紀錄是 <span class="tier t-${bt.tier}">${bt.tier}</span>（${res.best} 分）`:""}</p><p class="muted">成績取最高的一次（已挑戰 ${res.used}/${res.tries} 次）。</p><button class="b" onclick="list()">回到列表</button></div>`};
+ stage(r.stage<0?r.parts.length-1:r.stage)}
+whoUI();list();
+</script>
+</body>
+</html>

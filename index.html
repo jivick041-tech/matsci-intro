@@ -2530,7 +2530,7 @@ function render(ci){
   const steps=[["goals","學習目標","先知道要學會什麼"],["vocab","單字預習",`${vTotal} 個原文用字`],["concepts","觀念講解",`${ch.zones.length} 個觀念區＋觀念驗證`],["practice","實力加強",`${ch.practice.length} 題課本習題`],...(ch.bank&&ch.bank.length?[["bank","題庫練功",`${ch.bank.filter(q=>q.lv===1).length} 基礎＋${ch.bank.filter(q=>q.lv===2).length} 活用`]]:[]),["review","名詞總複習",`${termList.length} 個名詞自我測驗`]];
   let h=`<div class="strip" role="navigation" aria-label="本章段落">${steps.map((s,i)=>i===2?`<button class="chip" data-go="${s[0]}"><b>${i+1}</b>${s[1]}</button>`+ch.zones.map((z,zi)=>`<button class="chip mini" data-go="z${zi}" title="${z.title}">${z.code.slice(2)}</button>`).join(""):`<button class="chip" data-go="${s[0]}"><b>${i+1}</b>${s[1]}</button>`).join("")}</div>
    <div class="eyebrow">Chapter ${ch.num}</div><h2>第 ${ch.num} 章　${ch.name}</h2><p class="en">${ch.en}</p>
-   <p class="lead">${ch.lead}</p>
+   <p class="lead">${ch.lead}</p>${[6].includes(ch.num)?`<p><a class="b" href="exam.html?ch=${ch.num}" style="background:var(--accent);border-color:var(--accent)">📝 本章小考與情境闖關</a></p>`:""}
    <div class="route" style="--nsteps:${steps.length}" aria-label="建議學習順序">${steps.map((s,i)=>`<button data-go="${s[0]}"><span class="n">STEP ${i+1}</span><span class="t">${s[1]}</span><span class="d">${s[2]}</span></button>`).join("")}</div><div class="syncbox" id="syncbox"></div>`;
 
   h+=`<section class="step" id="sec-goals"><div class="stephead"><span class="sn">STEP 1</span><h3>學習目標</h3><span class="ref">Learning Objectives</span></div>
