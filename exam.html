@@ -46,7 +46,7 @@ input:focus,textarea:focus{outline:2px solid var(--steel);border-color:var(--ste
 .timer.low{background:var(--bad)}
 .score{font-family:var(--f-display);font-size:2.6rem;font-weight:900;line-height:1}
 .roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.role{border:2px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--paper);text-align:left;font:inherit;color:inherit}
+.role{border:2px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--paper);text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
 .role:hover,.role.on{border-color:var(--accent)}
 .role .ic{font-size:2rem}
 .map{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0}
@@ -61,6 +61,13 @@ input:focus,textarea:focus{outline:2px solid var(--steel);border-color:var(--ste
 .tier{display:inline-block;padding:2px 14px;border-radius:999px;font-weight:700;color:#fff}
 .t-傳說{background:linear-gradient(90deg,#b8860b,#e0b84a)}.t-史詩{background:#7b1fa2}.t-稀有{background:#2f5d78}.t-普通{background:#6b7a84}
 .err{color:var(--bad);font-weight:600}
+.coll{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}
+.slot{border:1.5px dashed var(--line);border-radius:8px;padding:8px 10px;font-size:.85rem}
+.slot.has{border-style:solid;border-color:var(--gold);background:var(--accent-soft)}
+.slot .sic{font-size:1.6rem;line-height:1.3}.slot .sn{font-weight:700}
+.slot .sd{color:var(--muted);font-size:.8rem}
+.role .rt{font-weight:700;color:var(--accent);margin:4px 0}
+.role:disabled{opacity:.5;cursor:not-allowed}
 .hide{display:none!important}
 </style>
 </head>
@@ -87,31 +94,6 @@ let cbn=0;function call(params){return new Promise(res=>{const cb="__qz"+(++cbn)
  const s=document.createElement("script");let done=false;const fin=v=>{if(done)return;done=true;delete window[cb];s.remove();res(v)};
  window[cb]=t=>{let r=null;try{r=JSON.parse(t)}catch(e){}fin(r||{err:"伺服器回應格式錯誤"})};s.onerror=()=>fin({err:"連線失敗，請檢查網路後再試"});setTimeout(()=>fin({err:"連線逾時，請再試一次"}),30000);s.src=u.toString();document.head.appendChild(s)})}
 function parseNum(raw){let s=String(raw).trim().replace(/[，,\s]/g,"").replace(/[−–—]/g,"-").replace(/[×xX*]10\^?/,"e").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g,m=>m.replace(/⁻/g,"-").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,c=>"⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(c)));if(/^e/i.test(s))s="1"+s;const x=Number(s);return s===""?NaN:x}
-/* 角色與寶物（只影響故事與寶物名稱，不影響分數） */
-const R_=(ic,name,line,a,b,c,d)=>({ic,name,line,tr:{"傳說":a,"史詩":b,"稀有":c,"普通":d}});
-const ROLESETS={
- 2:{alchemist:R_("⚗️","鍊金術士","你相信萬物都由原子組成，只要看懂電子就能看懂物質。",["💠","賢者之石"],["🧪","元素藥劑"],["🔮","電子水晶"],["📜","週期表卷軸"]),
-  spectro:R_("🌈","光譜學家","每一道光的顏色，都是電子跳躍留下的指紋。",["🌈","彩虹稜鏡"],["💡","霓虹燈芯"],["🔦","光譜手電筒"],["🕯️","鈉光蠟燭"]),
-  pilot:R_("⚡","電子領航員","你能預測每一個電子會落在哪個軌域。",["🛸","量子飛船"],["🧭","軌域羅盤"],["⚡","雷電徽章"],["🔋","小電池"]),
-  builder:R_("🧩","分子建築師","鍵結就是你的磚塊，離子、共價、金屬隨你搭。",["🏰","鍵結城堡"],["🧱","共價積木"],["🔗","離子鎖鏈"],["🪢","凡得瓦繩結"])},
- 3:{jeweler:R_("💎","寶石匠","你看一眼切面就知道原子怎麼排。",["👑","晶體王冠"],["💍","鑽石戒指"],["📿","水晶項鍊"],["🔹","晶片碎鑽"]),
-  crystal:R_("🔷","晶體學家","FCC、BCC、HCP 在你腦中自動旋轉。",["🌐","布拉菲天球"],["🔷","米勒稜鏡"],["🧊","單位晶胞"],["📐","晶向尺規"]),
-  xray:R_("📡","X 光繞射師","布拉格定律是你的咒語，繞射峰就是答案。",["🔭","繞射神鏡"],["📡","X 光天線"],["🎯","布拉格標靶"],["📈","繞射圖譜"]),
-  apprentice:R_("⚒️","冶金學徒","你從秤重、量體積開始，一步步算出金屬的祕密。",["🏆","密度聖盃"],["⚖️","精密天平"],["🪙","金屬試片"],["🧮","計算尺"])},
- 4:{fab:R_("🖥️","晶圓工程師","無塵室是你的戰場，一個缺陷都不放過。",["🌟","零缺陷晶圓"],["💾","完美晶片"],["🔌","銅導線"],["🧤","無塵手套"]),
-  hunter:R_("🔬","顯微鏡獵人","晶界、雙晶、差排，都逃不過你的鏡頭。",["🔭","原子之眼"],["🔬","電子顯微鏡"],["🔍","金相放大鏡"],["🖼️","金相照片"]),
-  mixer:R_("🧪","合金調配師","wt% 和 at% 在你手中隨意轉換。",["🥇","純金配方"],["🏅","K 金獎章"],["🧪","合金試管"],["🥄","秤量匙"]),
-  healer:R_("🩹","缺陷修補師","你知道每一種缺陷的來龍去脈，也知道怎麼利用它。",["✨","晶格聖光"],["🛡️","差排盾牌"],["🩹","空位貼布"],["🪡","修補針"])},
- 6:{smith:R_("🔨","鍛造師","火爐旁長大的你，最懂金屬受力後的脾氣。",["⚔️","玄鐵神劍"],["🪓","精鋼戰斧"],["🗡️","鍛鐵匕首"],["📿","鐵釘護符"]),
-  engineer:R_("🏗️","結構工程師","你看一眼橋，就能想像每根鋼索上的應力。",["🌉","天穹鋼索"],["🏛️","不朽樑柱"],["🧱","鋼骨模型"],["🔩","鉚釘徽章"]),
-  detective:R_("🔬","材料偵探","任何破損都逃不過你的眼睛，數據會說話。",["🔭","全知顯微鏡"],["📍","硬度神針"],["🔍","偵探放大鏡"],["📓","偵探筆記"]),
-  inspector:R_("⚖️","品管師","規格就是你的信仰，安全係數是你的盾牌。",["⚖️","真理天秤"],["📏","精準量規"],["🧾","檢驗印章"],["🏷️","合格標籤"])},
- 12:{potter:R_("🏺","陶藝家","泥土、釉藥、窯火，你懂陶瓷的每一種脾氣。",["🏺","千年名窯"],["🍵","青瓷茶碗"],["🫖","陶壺"],["🧱","素燒磚"]),
-  glass:R_("🫙","玻璃工匠","你知道矽氧四面體怎麼連成透明的網。",["🔮","不碎水晶球"],["📱","強化玻璃盾"],["🫙","玻璃瓶"],["🥛","玻璃杯"]),
-  gem:R_("💍","寶石鑑定師","鑽石、石墨、剛玉，一眼看穿它們的結構。",["💎","鑽石之劍"],["💍","藍寶石戒指"],["✏️","石墨筆"],["🪨","礦石標本"]),
-  space:R_("🚀","太空材料工程師","耐火磚、隔熱瓦，你為最極端的環境挑材料。",["🚀","太空梭隔熱瓦"],["🛰️","衛星護甲"],["🔥","耐火磚"],["🧯","隔熱手套"])}};
-const ROLES=ROLESETS[CH]||ROLESETS[6];
-const roleOf=k=>ROLES[k]||Object.values(ROLES)[0];
 /* ---------- 列表 ---------- */
 async function list(){const m=me();if(!m.sid){$("main").innerHTML=`<p class="muted">輸入學號後就能看到本章的小考與闖關。</p>`;return}
  $("main").innerHTML=`<p class="muted">載入中…</p>`;const r=await call({op:"list",u:m.sid,ch:CH});
@@ -121,10 +103,13 @@ async function list(){const m=me();if(!m.sid){$("main").innerHTML=`<p class="mut
  const card=i=>{const left=i.tries-i.used,isQ=i.type==="小考";return `<div class="card item"><div><span class="tag ${isQ?"tq":"ts"}">${i.type}</span><b>${esc(i.name)}</b>
   <div class="stat">${isQ?`${i.n} 題・限時 ${i.min||"不限"} 分`:"3 關＋魔王關・不限時"}・已作答 ${i.used}/${i.tries} 次${i.best!==null?`・最高 <b style="color:var(--ink)">${i.best}</b> 分`:""}${i.tier?`・寶物 <span class="tier t-${i.tier.tier}">${i.tier.tier}</span> 加分 ${i.tier.bonus}`:""}</div>${i.open?"":`<div class="err">老師目前未開放</div>`}</div>
   <div><button class="b ${isQ?"":"acc"}" data-go="${i.code}" ${(!i.open||(!i.cur&&left<=0))?"disabled":""}>${i.cur?"繼續作答":left<=0?"次數已用完":i.used?"再挑戰一次":"開始"}</button></div></div>`};
+ const qcard=i=>{const rs=i.roles||[],got=rs.filter(x=>x.treasure).length;return `<div class="card"><div class="item"><div><span class="tag ts">闖關</span><b>${esc(i.name)}</b><div class="stat">四大門派各走各的路・每派可挑戰 ${i.tries} 次・寶物收藏 ${got}/${rs.length}</div>${i.open?"":`<div class="err">老師目前未開放</div>`}</div>
+  <div><button class="b acc" data-go="${i.code}" ${i.open?"":"disabled"}>${rs.some(x=>x.cur)?"繼續修行":got?"選擇門派":"踏上修仙路"}</button></div></div>
+  <div class="coll">${rs.map(x=>`<div class="slot ${x.treasure?"has":""}"><div class="sic">${x.treasure?x.treasure.ic:"❔"}</div><div class="sn">${x.ic} ${esc(x.name)}</div>${x.treasure?`<div><span class="tier t-${x.treasure.tier}">${x.treasure.tier}</span> ${esc(x.treasure.name)}</div><div class="sd">${esc(x.treasure.desc)}</div>`:`<div class="sd">尚未取得</div>`}</div>`).join("")}</div></div>`};
  $("main").innerHTML=`<h2>📝 小考</h2>${r.items.filter(i=>i.type==="小考").map(card).join("")||'<p class="muted">無</p>'}
   <p class="muted">每次小考從題庫隨機抽題，計算題的數字每次都不同；最多作答 ${r.items[0].tries} 次，成績取最高分。開始後計時，時間到會自動交卷。</p>
-  <h2>🗺️ 情境闖關</h2>${r.items.filter(i=>i.type==="闖關").map(card).join("")||'<p class="muted">無</p>'}
-  <p class="muted">用本章（和前面章節）學到的觀念解決生活中的工程問題。打倒魔王後依分數獲得寶物：${tiers.map(t=>`<span class="tier t-${t.tier}">${t.tier}</span> ≥${t.min} 分（加分 ${t.bonus}）`).join("　")}。角色只影響故事與寶物外觀，不影響分數。</p>`;
+  <h2>⛩️ 修仙闖關</h2>${r.items.filter(i=>i.type==="闖關").map(qcard).join("")||'<p class="muted">無</p>'}
+  <p class="muted">劍修、丹修、器修、陣修四大門派，各走三道不同的關卡，題目都涵蓋本章內容，最後合力挑戰同一個魔王。打倒魔王後依分數獲得寶物：${tiers.map(t=>`<span class="tier t-${t.tier}">${t.tier}</span> ≥${t.min} 分（加分 ${t.bonus}）`).join("　")}。四派都去闖一闖，把寶物收集齊全吧！</p>`;
  $("main").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const it=r.items.find(x=>x.code===b.dataset.go);if(it.type==="小考")startQuiz(it);else startQuest(it)})}
 /* ---------- 題目 ---------- */
 function qHTML(q,no){return `<div class="q" id="q-${q.k}"><p><span class="no">${no}</span>${esc(q.s).replace(/\n/g,"<br>")}</p>${q.t==="mc"?q.o.map((o,i)=>`<label class="opt"><input type="radio" name="r-${q.k}" value="${i}"><span>(${"ABCD"[i]}) ${esc(o)}</span></label>`).join("")
@@ -150,14 +135,14 @@ async function startQuiz(it){const m=me();if(!it.cur&&!confirm(`開始「${it.na
  const upd=()=>{const left=Math.round((r.deadline-(Date.now()+off))/1000);if(!r.deadline){$("tleft").textContent="不限時";return}if(left<=0){$("tleft").textContent="時間到，自動交卷";submit(true);return}$("tleft").textContent=`剩餘 ${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`;$("tm").classList.toggle("low",left<=120)};
  clearInterval(tick);tick=setInterval(upd,1000);upd()}
 /* ---------- 闖關 ---------- */
-async function startQuest(it){const m=me();let role=it.cur?it.role:"";
- if(!it.cur){$("main").innerHTML=`<h2>選擇你的身分</h2><p class="muted">身分只影響故事敘述與寶物外觀，所有人的題目難度與加分標準都一樣。這是第 ${it.used+1} 次挑戰（共 ${it.tries} 次，取最高分）。</p><div class="roles">${Object.entries(ROLES).map(([k,v])=>`<button class="role" data-r="${k}"><div class="ic">${v.ic}</div><b>${v.name}</b><div class="muted">${v.line}</div></button>`).join("")}</div><p><button class="b ghost" onclick="list()">返回</button></p>`;
-  role=await new Promise(res=>$("main").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>res(b.dataset.r)))}
- $("main").innerHTML=`<p class="muted">展開冒險地圖…</p>`;const r=await call({op:"start",u:m.sid,name:m.sname,code:it.code,role});if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">返回</button>`;return}
- const R=roleOf(r.role);let hp=100;const bp=r.parts.find(x=>x.boss),BN=bp?(bp.title.split("・")[1]||"魔王"):"魔王",BS=BN.slice(-2);
+async function startQuest(it){const m=me();let role="";const rs=it.roles||[];
+ $("main").innerHTML=`<h2>⛩️ 選擇門派</h2><p class="muted">每個門派走不同的三道關卡，最後都要面對同一個魔王。每派可挑戰 ${it.tries} 次，該派寶物取最好的一次。</p><div class="roles">${rs.map(x=>{const left=it.tries-x.used;return `<button class="role" data-r="${x.key}" ${!x.cur&&left<=0?"disabled":""}><div class="ic">${x.ic}</div><b>${esc(x.name)}・${esc(x.sect)}</b><div class="rt">${esc(x.route)}</div><div class="muted">${esc(x.line)}</div><div class="stat" style="margin-top:6px">${x.cur?"🔥 修行中，點此繼續":`已挑戰 ${x.used}/${it.tries} 次${x.best!==null?`・最高 ${x.best} 分`:""}`}</div>${x.treasure?`<div style="margin-top:4px">${x.treasure.ic} <span class="tier t-${x.treasure.tier}">${x.treasure.tier}</span> ${esc(x.treasure.name)}</div>`:""}</button>`}).join("")}</div><p><button class="b ghost" onclick="list()">返回</button></p>`;
+ role=await new Promise(res=>$("main").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>res(b.dataset.r)));
+ $("main").innerHTML=`<p class="muted">展開修行地圖…</p>`;const r=await call({op:"start",u:m.sid,name:m.sname,code:it.code,role});if(r.err){$("main").innerHTML=`<p class="err">${esc(r.err)}</p><button class="b" onclick="list()">返回</button>`;return}
+ const R=r.sect||{ic:"🧙",name:"修士",line:"",route:""};let hp=100;const bp=r.parts.find(x=>x.boss),BN=bp?(bp.title.split("・")[1]||"魔王"):"魔王",BS=BN.slice(-2);
  const stage=si=>{const p=r.parts[si],boss=p.boss,dk="qz-draft-"+r.id+"-"+si;
-  $("main").innerHTML=`<div id="stg"><h2>${R.ic} ${esc(r.name)}</h2><div class="map">${r.parts.map((x,i)=>`<span class="node ${i<si?"done":i===si?"cur":""}">${x.boss?"👹 ":""}${esc(x.title.split("・")[1]||x.title)}</span>`).join("<span>→</span>")}</div>
-   <div class="story"><div class="who">${esc(p.title)}</div>${esc(p.story)}<div class="muted" style="margin-top:6px">${R.ic} ${R.name}：「${si===0?R.line:boss?"這就是最後一戰了，把學過的全部用上！":"繼續前進，下一個難題在等著我。"}」</div></div>
+  $("main").innerHTML=`<div id="stg"><h2>${R.ic} ${esc(R.route||r.name)}</h2><div class="muted">${esc(r.name)}・第 ${r.n} 次挑戰</div><div class="map">${r.parts.map((x,i)=>`<span class="node ${i<si?"done":i===si?"cur":""}">${x.boss?"👹 ":""}${esc(x.title.split("・")[1]||x.title)}</span>`).join("<span>→</span>")}</div>
+   <div class="story"><div class="who">${esc(p.title)}</div>${esc(p.story)}<div class="muted" style="margin-top:6px">${R.ic} ${esc(R.name)}：「${si===0?esc(R.line):boss?"四派同門已到，最後一戰，把所學全部用上！":"道心不移，繼續前進。"}」</div></div>
    ${boss?`<div><b>👹 ${esc(BN)}</b><div class="hp"><i id="hpb" style="width:${hp}%"></i></div></div>`:""}
    ${p.qs.map((q,i)=>qHTML(q,(i+1)+".")).join("")}
    ${boss?`<div class="q"><p><b>最後的反思（不計分，會傳給老師）</b><br>這一章的觀念，還可以用在生活中的哪裡？舉一個例子。</p><textarea id="refl" rows="3" style="width:100%"></textarea></div>`:""}
@@ -171,8 +156,8 @@ async function startQuest(it){const m=me();let role=it.cur?it.role:"";
    if(boss){hp=Math.max(0,Math.round(100*(1-okn/res.res.length)));setTimeout(()=>{const e=$("hpb");if(e)e.style.width=hp+"%"},50)}
    $("go").remove();$("msg").outerHTML=`<div class="card" style="width:100%">${boss?(hp===0?`💥 ${BS}被徹底擊倒！`:hp<50?`⚡ ${BS}重傷逃走了！`:`🛡️ ${BS}擋下了大部分攻擊…`):`這一關答對 ${okn}/${res.res.length} 題。`}<p style="margin:8px 0 0"><button class="b acc" id="nx">${res.finished?"🎁 領取寶物":"前往下一關 →"}</button></p></div>`;
    $("nx").onclick=()=>res.finished?treasure(res,R):stage(si+1)}};
- const treasure=(res,R)=>{const t=res.tier,tr=R.tr[t.tier]||R.tr["普通"],bt=res.best_tier;
-  $("main").innerHTML=`<div class="card treasure"><div class="big">${tr[0]}</div><p style="margin:4px 0"><span class="tier t-${t.tier}">${t.tier}</span></p><h2 style="margin:6px 0">${R.name}的「${tr[1]}」</h2><p class="score">${res.score}<span style="font-size:1rem"> 分</span></p><p>本次寶物加分 <b>${t.bonus}</b> 分${bt&&bt.tier!==t.tier?`・你目前最好的紀錄是 <span class="tier t-${bt.tier}">${bt.tier}</span>（${res.best} 分）`:""}</p><p class="muted">成績取最高的一次（已挑戰 ${res.used}/${res.tries} 次）。</p><button class="b" onclick="list()">回到列表</button></div>`};
+ const treasure=(res,R)=>{const tr=res.treasure||{ic:"🎁",name:"神秘寶物",desc:"",tier:res.tier.tier,bonus:res.tier.bonus},bt=res.best_tier;
+  $("main").innerHTML=`<div class="card treasure"><div class="big">${tr.ic}</div><p style="margin:4px 0"><span class="tier t-${tr.tier}">${tr.tier}</span></p><h2 style="margin:6px 0">${esc(R.name)}獲得「${esc(tr.name)}」</h2><p class="muted" style="font-size:1rem">${esc(tr.desc)}</p><p class="score">${res.score}<span style="font-size:1rem"> 分</span></p><p>寶物加分 <b>${tr.bonus}</b> 分${bt&&bt.tier!==tr.tier?`・${esc(R.name)}目前最好的紀錄是 <span class="tier t-${bt.tier}">${bt.tier}</span>（${res.best} 分）`:""}</p><p class="muted">${esc(R.name)}已挑戰 ${res.used}/${res.tries} 次・本章寶物收藏 ${res.collected||1}/4 派${(res.collected||1)<4?"。換個門派，走另一條路吧！":"，四派寶物收集完成！"}</p><button class="b" onclick="list()">回到列表</button></div>`};
  stage(r.stage<0?r.parts.length-1:r.stage)}
 whoUI();list();
 </script>
